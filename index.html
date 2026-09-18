@@ -217,6 +217,34 @@ nav button.on svg{stroke:var(--coral)}
 @keyframes trophyGlow{0%,100%{filter:drop-shadow(0 0 2px #FFD93D)}50%{filter:drop-shadow(0 0 14px #FFC107)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.trophy-pop .rays,.trophy-pop::after{animation:none}}
+
+/* ===== 顶部积分飘字动效 ===== */
+.chip{position:relative}
+.chip.pop{animation:coinPop .45s cubic-bezier(.2,1.5,.4,1)}
+@keyframes coinPop{0%{transform:scale(1)}45%{transform:scale(1.2)}100%{transform:scale(1)}}
+.pt-fly{
+  position:absolute;left:50%;top:0;pointer-events:none;z-index:5;
+  font-weight:900;font-size:.9rem;color:#1B7A3D;background:#EAFBEF;
+  border:2px solid #6BCB77;border-radius:999px;padding:2px 10px;white-space:nowrap;
+  animation:flyUp 1.1s cubic-bezier(.2,.9,.3,1) forwards;
+}
+.pt-fly.minus{color:#A32A2A;background:#FFECEC;border-color:#E63946}
+@keyframes flyUp{
+  0%{opacity:0;transform:translate(-50%,8px) scale(.85)}
+  25%{opacity:1;transform:translate(-50%,-8px) scale(1.06)}
+  100%{opacity:0;transform:translate(-50%,-38px) scale(1)}
+}
+.eye-min{font-size:.78rem;font-weight:800;color:#1F7A72;background:#EAFBF9;border-radius:999px;padding:3px 10px;margin-left:auto}
+
+/* ===== 护眼休息锁屏 ===== */
+#restRoot{position:fixed;inset:0;z-index:200}
+.rest-mask{position:absolute;inset:0;background:linear-gradient(180deg,#EAFBF9 0%,#FFF7EC 100%);display:flex;align-items:center;justify-content:center;padding:22px;overflow-y:auto}
+.rest-box{background:#fff;border-radius:26px;box-shadow:0 12px 40px rgba(0,0,0,.18);padding:24px;max-width:420px;width:100%;text-align:center;border:3px solid #FFE8C2}
+.rest-box h3{font-size:1.25rem;margin:10px 0 8px}
+.rest-box p{color:var(--soft);font-weight:700;font-size:.95rem;line-height:1.6;margin-bottom:12px}
+.rest-eye{width:96px;height:96px;margin:0 auto;animation:blink 2.6s ease-in-out infinite}
+@keyframes blink{0%,44%,56%,100%{transform:scaleY(1)}50%{transform:scaleY(.12)}}
+@media (prefers-reduced-motion:reduce){.rest-eye{animation:none}}
 </style>
 </head>
 <body>
@@ -266,6 +294,7 @@ nav button.on svg{stroke:var(--coral)}
 
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
+<div id="restRoot"></div>
 
 <script>
 (function(){
@@ -385,6 +414,13 @@ if(!state.settings) state.settings={daily:20,pass:null,name:''};
 if(typeof state.settings.name!=='string') state.settings.name='';
 if(typeof state.onboarded!=='boolean') state.onboarded=false;
 if(typeof state.celebrated!=='string') state.celebrated=null;
+if(typeof state.resting!=='boolean') state.resting=false;
+if(typeof state.settings.restMin!=='number') state.settings.restMin=30;
+/* 老存档没有 pt（该字已发积分）字段：按掌握状态回填，避免重复发分 */
+for(var ck in state.chars){
+  var cr=state.chars[ck];
+  if(typeof cr.pt!=='number') cr.pt = cr.st>=2 ? 2 : (cr.st===1 ? 1 : 0);
+}
 lsSet('state',state); /* 补齐后立刻落盘，保证老存档迁移不丢 */
 function save(){ lsSet('state',state); }
 function babyName(){ return (state.settings && state.settings.name) ? state.settings.name : '宝宝'; }
@@ -412,16 +448,33 @@ function todayProgress(){
 function totalMastered(){
   var n=0; for(var k in state.chars){ if(state.chars[k].st===2) n++; } return n;
 }
+/* 积分规则：每个字最多产出 2 分
+   - 翻一翻（首次翻开）：+1
+   - 认识啦：补齐到 2（没翻过直接 +2，翻过则 +1），不与翻卡叠加
+   - 组词练习答对：补齐到 2（出题只挑已翻过的字，所以就是 +1），不与翻卡叠加 */
+var CHAR_MAX_PT=2;
 function markSeen(c){
-  var r=state.chars[c]||{st:0,day:state.currentDay};
-  if(r.st===0){ r.st=1; state.points+=1; }
-  state.chars[c]=r; touchActive();
+  var r=state.chars[c]||{st:0,day:state.currentDay,pt:0};
+  if(r.st===0){
+    r.st=1;
+    var gain=Math.max(0,1-(r.pt||0));
+    r.pt=(r.pt||0)+gain;
+    state.chars[c]=r; touchActive(); save();
+    if(gain>0) gainPoints(gain);
+  }else{
+    state.chars[c]=r; touchActive(); save();
+  }
 }
 function markMastered(c){
-  var r=state.chars[c]||{st:0,day:state.currentDay};
+  var r=state.chars[c]||{st:0,day:state.currentDay,pt:0};
   var was=r.st;
-  if(was<2){ r.st=2; state.points+=2; state.chars[c]=r;
-    var t=todayStr(); state.log[t]=(state.log[t]||0)+1; touchActive();
+  if(was<2){
+    r.st=2;
+    var gain=Math.max(0,CHAR_MAX_PT-(r.pt||0));
+    r.pt=(r.pt||0)+gain;
+    state.chars[c]=r;
+    var t=todayStr(); state.log[t]=(state.log[t]||0)+1; touchActive(); save();
+    if(gain>0) gainPoints(gain);
     /* 先用「未解锁下一关前」的进度判断今日目标，再判断是否通关，避免进度被重置导致漏庆祝 */
     var tp=todayProgress();
     checkTodayGoal(tp);
@@ -463,7 +516,7 @@ function checkDayClear(){
   var chars=dayChars(state.currentDay), all=true;
   for(var i=0;i<chars.length;i++) if(charSt(chars[i].c)<2){ all=false; break; }
   if(all && chars.length){
-    state.points+=20;
+    gainPoints(20);
     if(state.currentDay<TOTAL_DAYS){
       state.currentDay++;
       setTimeout(function(){ toast('太棒了！通关成功 +20分，解锁第 '+state.currentDay+' 关！'); confetti(); },300);
@@ -484,14 +537,88 @@ function speak(text){
   }catch(e){}
 }
 
+/* ================= 护眼休息 ================= */
+function restLimit(){ var n=state.settings.restMin; return (typeof n==='number' && n>0) ? n : 30; }
+function eyeMinutes(){
+  if(!state.eye || state.eye.date!==todayStr()) state.eye={date:todayStr(),usedMin:0};
+  return state.eye.usedMin;
+}
+/* 每满 1 分钟累加一次；页面切到后台不计时 */
+function tickEye(){
+  if(state.resting) return;
+  if(document.hidden) return;
+  eyeMinutes();
+  state.eye.usedMin+=1; save();
+  if(state.eye.usedMin>=restLimit()) showRestLock();
+  else renderToday();
+}
+/* 到达时长后全屏锁屏，必须家长输密码才继续 */
+function showRestLock(){
+  state.resting=true; save();
+  var root=el('restRoot'); if(!root) return;
+  root.innerHTML='<div class="rest-mask"><div class="rest-box">'
+    +'<svg class="rest-eye" viewBox="0 0 64 64">'
+    +'<ellipse cx="32" cy="36" rx="26" ry="16" fill="#FFFDF5" stroke="#4ECDC4" stroke-width="3"/>'
+    +'<circle cx="32" cy="36" r="9" fill="#3D3654"/><circle cx="35.5" cy="32.5" r="3.2" fill="#fff"/>'
+    +'<path d="M13 15l7 7M51 15l-7 7" stroke="#FFD93D" stroke-width="3" stroke-linecap="round"/>'
+    +'</svg>'
+    +'<h3>眼睛该休息啦</h3>'
+    +'<p>'+esc(babyName())+'今天已经学习了 <b style="color:#FF6B6B">'+eyeMinutes()+'</b> 分钟<br>'
+    +'看看窗外的远处、眨眨眼睛，休息好再继续哦</p>'
+    +'<div style="margin:6px auto 10px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:#F3EDFF">'
+    +'<svg style="width:26px;height:26px"><use href="#i-lock"/></svg></div>'
+    +'<p style="margin-bottom:10px">请家长输入密码后继续学习</p>'
+    +'<input class="pass-input" id="restPass" type="number" inputmode="numeric" max="9999" placeholder="····" autocomplete="off">'
+    +'<div class="row"><button class="bigbtn teal" id="restOk">休息好了，继续学习</button></div>'
+    +'</div></div>';
+  var input=el('restPass');
+  if(input) input.focus();
+  function unlock(){
+    var v=(input && input.value ? input.value : '').trim();
+    if(!/^\d{4}$/.test(v)){ toast('请输入 4 位家长密码'); return; }
+    if(!state.settings.pass){
+      state.settings.pass=obf(v); /* 首次使用时顺带把家长密码设好 */
+    }else if(obf(v)!==state.settings.pass){
+      toast('密码不对，再试一次');
+      if(input){ input.value=''; input.focus(); }
+      return;
+    }
+    state.resting=false; state.eye={date:todayStr(),usedMin:0}; save();
+    root.innerHTML=''; refreshAll(); toast('休息好啦，我们继续学');
+  }
+  el('restOk').addEventListener('click',unlock);
+  if(input) input.addEventListener('keydown',function(e){ if(e.key==='Enter') unlock(); });
+}
+
 /* ================= UI 工具 ================= */
 function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
 function toast(msg){
   var root=el('toastRoot');
+  root.innerHTML=''; /* 同一时刻只保留一条，避免多条堆叠显得乱 */
   var t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   root.appendChild(t);
   setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },2600);
+}
+/* 统一的积分入口：加分/扣分都走这里，顶部金币做一次弹跳 + 飘出「+N」 */
+function gainPoints(n){
+  if(!n) return;
+  state.points+=n;
+  if(state.points<0) state.points=0;
+  flyPoints(n);
+}
+function flyPoints(n){
+  var chip=el('pointsChip'); if(!chip) return;
+  chip.textContent=state.points;
+  var host=chip.parentNode; if(!host) return;
+  host.classList.remove('pop');
+  void host.offsetWidth;
+  host.classList.add('pop');
+  var b=document.createElement('span');
+  b.className='pt-fly'+(n<0?' minus':'');
+  b.textContent=(n>0?'+':'')+n;
+  host.appendChild(b);
+  setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); },1100);
 }
 function confetti(){
   var colors=['#FF6B6B','#4ECDC4','#FFD93D','#9B5DE5','#6BCB77'];
@@ -547,7 +674,8 @@ function renderToday(){
   var box=el('todaySection');
   var od=overdueList(), tp=todayProgress();
   var doneToday=tp.mastered>=tp.target;
-  var h='<div class="today-head"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>今天要处理 <span style="font-size:.8rem;color:var(--soft);font-weight:700">'+todayStr()+'</span></div>';
+  var h='<div class="today-head"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>今天要处理 <span style="font-size:.8rem;color:var(--soft);font-weight:700">'+todayStr()+'</span>'
+    +(eyeMinutes()>0?'<span class="eye-min">今天已学 '+eyeMinutes()+' 分钟</span>':'')+'</div>';
   if(od.length){
     h+='<div class="overdue-box"><span class="txt">昨天落下的 '+od.length+' 个字还没掌握，已自动顺延到今天哦</span>'
       +'<button class="bigbtn" data-go="cards">马上补学</button></div>';
@@ -622,8 +750,7 @@ function renderCards(){
         if(willFlip){
           var before=charSt(c);
           markSeen(c);
-          if(before===0){ save(); toast('学了一个新字 +1分'); }
-          else save();
+          /* 翻卡的积分反馈交给顶部「+N」飘字，不再重复弹提示 */
           /* 事件处理里统一调度：积分 / 今日区 / 组词练习（切过去就能出新题） */
           renderPointsChip(); renderToday(); renderQuiz();
           speak(c);
@@ -637,7 +764,7 @@ function renderCards(){
         var before=charSt(ch);
         markMastered(ch);
         save();
-        if(before<2) toast('真棒！「'+ch+'」已掌握 +2分');
+        if(before<2) toast('真棒！「'+ch+'」已掌握');
         else toast('「'+ch+'」已经掌握啦');
         renderPointsChip();
         refreshAll();
@@ -724,7 +851,7 @@ function renderQuiz(){
           btn.classList.add('right');
           markMastered(quizState.char.c);
           save();
-          toast('答对啦！「'+quizState.char.c+'」掌握了 +2分');
+          toast('答对啦！「'+quizState.char.c+'」掌握了');
           setTimeout(function(){ quizState.char=null; refreshAll(); },1200);
         }else{
           btn.classList.add('wrong');
@@ -790,7 +917,7 @@ function renderLevels(){
       btn.addEventListener('click',function(){
         var name=btn.getAttribute('data-redeem'), cost=parseInt(btn.getAttribute('data-cost'),10);
         if(state.points<cost){ toast('积分不够哦，继续加油学字吧'); return; }
-        state.points-=cost;
+        gainPoints(-cost);
         state.redemptions.push({id:'rd_'+Date.now(),rewardName:name,cost:cost,status:'pending',ts:Date.now()});
         save(); refreshAll();
         toast('兑换申请已发出，等爸爸妈妈确认哦');
@@ -910,6 +1037,10 @@ function renderParent(){
     +'<select id="selDaily">'
     +[10,15,20,25].map(function(n){ return '<option value="'+n+'"'+(todayTarget()===n?' selected':'')+'>'+n+' 个字</option>'; }).join('')
     +'</select></div>';
+  h+='<div class="form-row"><span style="font-weight:800;align-self:center">护眼休息提醒</span>'
+    +'<select id="selRest">'
+    +[20,30,45].map(function(n){ return '<option value="'+n+'"'+(restLimit()===n?' selected':'')+'>每 '+n+' 分钟提醒一次</option>'; }).join('')
+    +'</select></div>';
   h+='<div class="form-row"><span style="font-weight:800;align-self:center">跳到指定关卡</span>'
     +'<input id="inpJump" type="number" inputmode="numeric" min="1" max="'+TOTAL_DAYS+'" placeholder="1~'+TOTAL_DAYS+'" style="max-width:120px">'
     +'<button class="smbtn grape" id="btnJump" style="min-height:50px">跳转</button></div>';
@@ -945,7 +1076,7 @@ function renderParent(){
       var id=btn.getAttribute('data-refund');
       for(var i=0;i<state.redemptions.length;i++){
         if(state.redemptions[i].id===id){
-          state.points+=state.redemptions[i].cost;
+          gainPoints(state.redemptions[i].cost);
           state.redemptions.splice(i,1); break;
         }
       }
@@ -975,6 +1106,10 @@ function renderParent(){
   });
   el('selDaily').addEventListener('change',function(){
     state.settings.daily=parseInt(this.value,10); save(); refreshAll(); toast('每日目标已更新');
+  });
+  el('selRest').addEventListener('change',function(){
+    state.settings.restMin=parseInt(this.value,10); save(); refreshAll();
+    toast('护眼提醒已设为每 '+state.settings.restMin+' 分钟');
   });
   el('btnJump').addEventListener('click',function(){
     var n=parseInt(el('inpJump').value,10);
@@ -1075,6 +1210,10 @@ function init(){
   switchTab('cards');
   refreshAll();
   if(!state.onboarded){ showOnboarding(); }
+  /* 护眼计时：每 1 分钟累加一次当天学习时长，到点锁屏 */
+  setInterval(tickEye,60000);
+  if(state.resting || eyeMinutes()>=restLimit()) showRestLock();
+  window.__wbTickEye=tickEye; /* 自动化测试钩子 */
 }
 document.addEventListener('DOMContentLoaded',init);
 })();
