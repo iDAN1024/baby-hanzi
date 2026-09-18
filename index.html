@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<!-- 宝宝识字乐园 · 本地存储版（localStorage 前缀 wb_shizi_），零外链单文件 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>宝宝识字乐园</title>
+<style>
+:root{
+  --coral:#FF6B6B; --teal:#4ECDC4; --sun:#FFD93D; --grape:#9B5DE5; --leaf:#6BCB77;
+  --ink:#3D3654; --soft:#8B85A3; --bg:#FFF7EC; --card:#FFFFFF; --red:#E63946;
+  --shadow:0 4px 16px rgba(61,54,84,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:linear-gradient(180deg,#FFF3DC 0%,#FFF7EC 40%,#F0FBF9 100%);
+  color:var(--ink);min-height:100vh;padding-bottom:96px;
+}
+.kai{font-family:"Kaiti SC","STKaiti","KaiTi","Kaiti TC",serif}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.hidden{display:none!important}
+
+/* ===== 头部 ===== */
+header{
+  position:sticky;top:0;z-index:50;background:rgba(255,247,236,.92);
+  backdrop-filter:blur(8px);padding:10px 14px;display:flex;align-items:center;gap:8px;
+  border-bottom:2px solid #FFE8C2;
+}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem}
+.logo svg{width:30px;height:30px}
+.head-spacer{flex:1}
+.chip{
+  display:flex;align-items:center;gap:5px;background:#fff;border:2px solid var(--sun);
+  border-radius:999px;padding:6px 12px;font-weight:800;font-size:.95rem;color:#B8860B;
+}
+.chip svg{width:18px;height:18px}
+.iconbtn{
+  width:44px;height:44px;border-radius:14px;background:#fff;border:2px solid #FFE1B3;
+  display:flex;align-items:center;justify-content:center;
+}
+.iconbtn svg{width:20px;height:20px;stroke:var(--ink)}
+main{max-width:960px;margin:0 auto;padding:14px}
+
+/* ===== 今天要处理 ===== */
+.today-card{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px;border:3px solid #FFE8C2}
+.today-head{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.05rem;margin-bottom:10px}
+.today-head svg{width:22px;height:22px}
+.overdue-box{
+  background:#FFF0F0;border:2px solid var(--red);border-radius:16px;padding:12px;
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;
+}
+.overdue-box .txt{flex:1;min-width:180px;color:var(--red);font-weight:700;font-size:.95rem}
+.task-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.task-line .txt{flex:1;min-width:180px;font-weight:700;font-size:.95rem}
+.progress{height:14px;border-radius:999px;background:#F1ECFF;overflow:hidden;flex:1;min-width:120px}
+.progress>i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--leaf));transition:width .4s}
+.bigbtn{
+  min-height:50px;padding:10px 20px;border-radius:16px;font-size:1.05rem;font-weight:800;color:#fff;
+  background:linear-gradient(135deg,var(--coral),#FF8E53);box-shadow:0 4px 0 #D94F4F;
+}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #D94F4F}
+.bigbtn.teal{background:linear-gradient(135deg,var(--teal),#38B2A8);box-shadow:0 4px 0 #2C8F87}
+.bigbtn.teal:active{box-shadow:0 1px 0 #2C8F87}
+.bigbtn.grape{background:linear-gradient(135deg,var(--grape),#7C4BD6);box-shadow:0 4px 0 #653BB0}
+.bigbtn.grape:active{box-shadow:0 1px 0 #653BB0}
+.tip-bar{background:#FFF9E0;border:2px dashed var(--sun);border-radius:14px;padding:10px 12px;font-size:.88rem;font-weight:700;color:#8a6d00;margin-top:10px}
+
+/* ===== 通用面板 ===== */
+.panel{display:none;animation:fadein .25s}
+.panel.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sec-title{display:flex;align-items:center;gap:8px;font-size:1.15rem;font-weight:800;margin:16px 0 10px}
+.sec-title svg{width:24px;height:24px}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:14px}
+
+/* ===== 字卡 ===== */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.zi-card{perspective:800px;height:210px;position:relative}
+.zi-inner{position:absolute;inset:0;transition:transform .5s;transform-style:preserve-3d}
+.zi-card.flip .zi-inner{transform:rotateY(180deg)}
+.zi-face{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;box-shadow:var(--shadow);padding:8px;
+}
+.zi-front{font-size:4rem;background:#fff;border:3px solid #FFE8C2}
+.zi-back{transform:rotateY(180deg);background:#fff;border:3px solid var(--teal);font-size:.9rem}
+.zi-back .pic svg{width:72px;height:72px}
+.zi-back .py{font-size:1.1rem;font-weight:800;color:var(--grape)}
+.zi-back .words{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.zi-back .words i{font-style:normal;background:#F0FBF9;border:1.5px solid var(--teal);border-radius:999px;padding:2px 8px;font-size:.78rem;font-weight:700;color:#2C8F87}
+.minibtn{min-height:44px;min-width:44px;border-radius:12px;padding:8px 12px;font-weight:800;font-size:.9rem;color:#fff;background:var(--teal);display:inline-flex;align-items:center;gap:5px;justify-content:center}
+.minibtn svg{width:18px;height:18px}
+.minibtn.coral{background:var(--coral)}
+.badge{position:absolute;top:8px;left:8px;z-index:3;font-size:.72rem;font-weight:800;border-radius:999px;padding:3px 9px;color:#fff}
+.badge.review{background:var(--red)}
+.badge.done{background:var(--leaf)}
+
+/* ===== 组词练习 ===== */
+.quiz-wrap{max-width:520px;margin:0 auto}
+.quiz-q{background:#fff;border-radius:24px;box-shadow:var(--shadow);padding:22px 16px;text-align:center;border:3px solid #EDE4FF}
+.quiz-char{font-size:4.4rem;line-height:1.1}
+.quiz-tip{font-size:1.1rem;font-weight:800;margin:10px 0 4px;color:var(--soft)}
+.quiz-ask{font-size:1.25rem;font-weight:800;margin-bottom:14px}
+.opt-list{display:flex;flex-direction:column;gap:12px}
+.opt-btn{
+  min-height:56px;border-radius:18px;border:3px solid #E5DEFF;background:#FBFAFF;
+  font-size:1.35rem;font-weight:800;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.opt-btn.right{background:#E9FBEF;border-color:var(--leaf);color:#2E7D32;animation:pop .35s}
+.opt-btn.wrong{background:#FFF0F0;border-color:var(--red);color:var(--red);animation:shake .35s}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.quiz-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-weight:800;color:var(--soft)}
+.empty-box{text-align:center;padding:36px 16px;color:var(--soft);font-weight:700}
+
+/* ===== 闯关 / 商城 ===== */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.stat-box{background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:12px;text-align:center}
+.stat-box .num{font-size:1.5rem;font-weight:800}
+.stat-box .lbl{font-size:.8rem;color:var(--soft);font-weight:700;margin-top:2px}
+.level-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.level-card{background:#fff;border-radius:20px;box-shadow:var(--shadow);padding:14px;text-align:center;border:3px solid #E7FBF4}
+.level-card.locked{opacity:.55;border-color:#EEE}
+.level-card h4{font-size:1.05rem;margin-bottom:4px}
+.level-card .chars{font-size:.8rem;color:var(--soft);font-weight:700;margin-bottom:8px}
+.stars{display:flex;justify-content:center;gap:4px;margin-bottom:6px}
+.stars svg{width:26px;height:26px}
+.level-tag{font-size:.8rem;font-weight:800;border-radius:999px;padding:3px 12px;display:inline-block}
+.level-tag.go{background:#E9FBEF;color:#2E7D32}
+.level-tag.ing{background:#FFF6DC;color:#B8860B}
+.level-tag.lock{background:#F1F1F4;color:#8B85A3}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.reward-card{background:#fff;border-radius:20px;box-shadow:var(--shadow);padding:14px;text-align:center;border:3px solid #FFF0D2}
+.reward-card .rw-ico svg{width:40px;height:40px}
+.reward-card h4{font-size:1rem;margin:6px 0 2px}
+.reward-card .cost{font-weight:800;color:#B8860B;margin-bottom:8px}
+.reward-card .pending-tag{font-size:.8rem;font-weight:800;color:var(--grape);background:#F3EDFF;border-radius:999px;padding:4px 10px;display:inline-block}
+
+/* ===== 家长中心 ===== */
+.lock-box{max-width:360px;margin:40px auto;text-align:center}
+.lock-box .lock-ico svg{width:64px;height:64px}
+.pass-input{
+  width:100%;font-size:1.6rem;letter-spacing:12px;text-align:center;padding:14px;margin:14px 0;
+  border:3px solid #EDE4FF;border-radius:16px;font-weight:800;
+}
+.report-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.chart-box{background:#fff;border-radius:20px;box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+.chart-box svg{width:100%;height:auto}
+.admin-list{display:flex;flex-direction:column;gap:8px}
+.admin-item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+.admin-item .t{flex:1;font-weight:700;font-size:.95rem}
+.smbtn{min-height:44px;border-radius:12px;padding:8px 14px;font-weight:800;font-size:.88rem;color:#fff;background:var(--teal)}
+.smbtn.red{background:var(--red)}
+.smbtn.grape{background:var(--grape)}
+.smbtn.gray{background:#A9A3C0}
+.form-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.form-row input,.form-row select{
+  font-size:16px;padding:12px;border-radius:14px;border:2.5px solid #EDE4FF;min-height:50px;font-weight:700;color:var(--ink);background:#fff;
+}
+.form-row input{flex:2;min-width:130px}
+.form-row select{flex:1;min-width:100px}
+.danger-zone{border:2.5px dashed var(--red);border-radius:18px;padding:12px;margin-top:14px}
+
+/* ===== 底部导航 ===== */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;
+  display:flex;border-top:2px solid #FFE8C2;padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;font-size:.78rem;font-weight:800;color:var(--soft);
+}
+nav button svg{width:26px;height:26px}
+nav button.on{color:var(--coral)}
+nav button.on svg{stroke:var(--coral)}
+@media (min-width:768px){
+  body{padding-bottom:20px}
+  nav{position:sticky;top:64px;bottom:auto;max-width:960px;margin:0 auto;border:2px solid #FFE8C2;border-radius:0 0 20px 20px}
+}
+
+/* ===== 弹层 ===== */
+.overlay{position:fixed;inset:0;background:rgba(61,54,84,.45);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border-radius:24px;padding:22px;max-width:400px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.modal h3{font-size:1.15rem;margin-bottom:10px}
+.modal p{color:var(--soft);font-weight:700;margin-bottom:14px;font-size:.95rem}
+.modal .row{display:flex;gap:10px;justify-content:center}
+.toast{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99;background:var(--ink);color:#fff;
+  border-radius:999px;padding:10px 22px;font-weight:800;font-size:.95rem;box-shadow:var(--shadow);
+  animation:fadein .2s;max-width:88vw;text-align:center;
+}
+.confetti{position:fixed;top:-10px;z-index:98;width:10px;height:16px;border-radius:3px;animation:fall 2.2s linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
+</style>
+</head>
+<body>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M4 19V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"/><path d="M2 19h20M8 8h8M8 12h5" fill="none" stroke="#4ECDC4" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#FFD93D" stroke="#E0A800" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="11" font-weight="bold" fill="#B8860B">分</text></symbol>
+  <symbol id="i-cards" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></symbol>
+  <symbol id="i-quiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5M9.5 9.5a1.5 1.5 0 1 1 2.3 1.3c-.6.4-.8.7-.8 1.2"/><circle cx="11" cy="14.5" r=".5" fill="currentColor"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 5H4a4 4 0 0 0 4 4M16 5h4a4 4 0 0 1-4 4M12 13v4M8 21h8M10 17h4"/></symbol>
+  <symbol id="i-parent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"/><path d="M9.5 12l2 2 3.5-4"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9L12 3z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M4 13h16M12 9s-4 0-4-3a2 2 0 0 1 4 0M12 9s4 0 4-3a2 2 0 0 0-4 0"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="#9B5DE5" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+</svg>
+
+<header>
+  <div class="logo"><svg><use href="#i-logo"/></svg>宝宝识字乐园</div>
+  <div class="head-spacer"></div>
+  <div class="chip" title="我的积分"><svg><use href="#i-coin"/></svg><span id="pointsChip">0</span></div>
+  <button class="iconbtn" id="btnExport" title="导出备份"><svg><use href="#i-down"/></svg></button>
+  <button class="iconbtn" id="btnImport" title="导入恢复"><svg><use href="#i-up"/></svg></button>
+  <input type="file" id="importFile" accept=".json" class="hidden">
+</header>
+
+<main>
+  <!-- 今天要处理 -->
+  <section class="today-card" id="todaySection"></section>
+
+  <!-- 模块面板 -->
+  <section class="panel" id="panel-cards"></section>
+  <section class="panel" id="panel-quiz"></section>
+  <section class="panel" id="panel-levels"></section>
+  <section class="panel" id="panel-parent"></section>
+</main>
+
+<nav>
+  <button data-tab="cards" class="on"><svg><use href="#i-cards"/></svg>学字卡片</button>
+  <button data-tab="quiz"><svg><use href="#i-quiz"/></svg>组词练习</button>
+  <button data-tab="levels"><svg><use href="#i-trophy"/></svg>闯关奖励</button>
+  <button data-tab="parent"><svg><use href="#i-parent"/></svg>家长中心</button>
+</nav>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= 数据层 ================= */
+var LS_PREFIX='wb_shizi_';
+function lsGet(k,fb){try{var v=localStorage.getItem(LS_PREFIX+k);return v?JSON.parse(v):fb;}catch(e){return fb;}}
+function lsSet(k,v){try{localStorage.setItem(LS_PREFIX+k,JSON.stringify(v));}catch(e){}}
+
+function pad(n){return n<10?'0'+n:''+n;}
+function fmtDate(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function todayStr(){return fmtDate(new Date());}
+function dayOffsetStr(off){var d=new Date();d.setDate(d.getDate()+off);return fmtDate(d);}
+
+/* 字库：60 字 × 3 关，每字含拼音/组词/象形插画（内联 SVG） */
+var BANK=[
+{c:'日',p:'rì',w:['日子','太阳','生日'],s:'<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="13" fill="#FFD93D" stroke="#F0A500" stroke-width="3"/><g stroke="#F0A500" stroke-width="3" stroke-linecap="round"><path d="M32 6v7M32 51v7M6 32h7M51 32h7M13 13l5 5M46 46l5 5M51 13l-5 5M18 46l-5 5"/></g></svg>'},
+{c:'月',p:'yuè',w:['月亮','月光','明月'],s:'<svg viewBox="0 0 64 64"><path d="M42 8a26 26 0 1 0 0 48 21 21 0 1 1 0-48z" fill="#FFE28A" stroke="#E8B90B" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'山',p:'shān',w:['大山','高山','上山'],s:'<svg viewBox="0 0 64 64"><path d="M6 50L20 20l8 16 8-22 22 36z" fill="#8FCB9B" stroke="#4C956C" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'水',p:'shuǐ',w:['喝水','水果','雨水'],s:'<svg viewBox="0 0 64 64"><g fill="none" stroke="#4EA8DE" stroke-width="4" stroke-linecap="round"><path d="M8 20q6-7 12 0t12 0 12 0 12 0"/><path d="M8 34q6-7 12 0t12 0 12 0 12 0"/><path d="M8 48q6-7 12 0t12 0 12 0 12 0"/></g></svg>'},
+{c:'火',p:'huǒ',w:['火苗','火车','大火'],s:'<svg viewBox="0 0 64 64"><path d="M32 6c4 10 14 14 14 26a14 14 0 1 1-28 0c0-7 4-11 7-15 1 4 3 6 5 7-1-7 0-13 2-18z" fill="#FF7B3F" stroke="#E85D04" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="42" r="6" fill="#FFD93D"/></svg>'},
+{c:'木',p:'mù',w:['木头','树木','木耳'],s:'<svg viewBox="0 0 64 64"><g stroke="#8B5E34" stroke-width="4" stroke-linecap="round" fill="none"><path d="M32 10v44M32 26L16 14M32 26l16-12M12 40h40"/></g></svg>'},
+{c:'人',p:'rén',w:['人们','大人','好人'],s:'<svg viewBox="0 0 64 64"><circle cx="32" cy="14" r="7" fill="#FFC8A2" stroke="#D98841" stroke-width="3"/><g stroke="#3D3654" stroke-width="4" stroke-linecap="round" fill="none"><path d="M32 24v14M32 38L18 56M32 38l14 18"/></g></svg>'},
+{c:'口',p:'kǒu',w:['口水','门口','开口'],s:'<svg viewBox="0 0 64 64"><rect x="14" y="18" width="36" height="30" rx="8" fill="#FFB4B4" stroke="#E05D5D" stroke-width="3"/></svg>'},
+{c:'目',p:'mù',w:['目光','眼睛','目标'],s:'<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="24" ry="15" fill="#fff" stroke="#3D3654" stroke-width="3"/><circle cx="32" cy="32" r="8" fill="#4EA8DE"/><circle cx="32" cy="32" r="3.5" fill="#1D3557"/></svg>'},
+{c:'手',p:'shǒu',w:['小手','手指','拍手'],s:'<svg viewBox="0 0 64 64"><g stroke="#D98841" stroke-width="4" stroke-linecap="round" fill="none"><path d="M22 34V16M30 32V10M38 32V12M46 34V20"/><path d="M14 34c0-6 4-8 8-6" /><path d="M18 34v12a14 12 0 0 0 28 0V34"/></g><path d="M18 46a14 12 0 0 0 28 0V34H18z" fill="#FFC8A2" opacity=".6"/></svg>'},
+{c:'足',p:'zú',w:['足球','知足','远足'],s:'<svg viewBox="0 0 64 64"><path d="M24 8v22c0 8-4 12-8 16 8 6 24 6 30 0 4-4 2-8-4-8h-8V8z" fill="#FFC8A2" stroke="#D98841" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'田',p:'tián',w:['田地','稻田','农田'],s:'<svg viewBox="0 0 64 64"><rect x="10" y="12" width="44" height="40" rx="4" fill="#CDEAC0" stroke="#5C940D" stroke-width="3"/><g stroke="#5C940D" stroke-width="3"><path d="M32 12v40M10 32h44"/></g></svg>'},
+{c:'土',p:'tǔ',w:['土地','泥土','沙土'],s:'<svg viewBox="0 0 64 64"><g stroke="#8B5E34" stroke-width="5" stroke-linecap="round" fill="none"><path d="M20 26h24M10 48h44M32 12v36"/></g></svg>'},
+{c:'石',p:'shí',w:['石头','石子','岩石'],s:'<svg viewBox="0 0 64 64"><path d="M14 44l6-22 18-8 14 14-4 16-18 8z" fill="#C9CAD3" stroke="#6C6F7F" stroke-width="3" stroke-linejoin="round"/><path d="M24 30l10 8M38 22l-4 16" stroke="#6C6F7F" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>'},
+{c:'云',p:'yún',w:['白云','云朵','乌云'],s:'<svg viewBox="0 0 64 64"><path d="M18 44a9 9 0 0 1-2-17.8A14 14 0 0 1 43 20a11 11 0 0 1 4 21.4z" fill="#fff" stroke="#8ECAE6" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'雨',p:'yǔ',w:['下雨','雨水','小雨'],s:'<svg viewBox="0 0 64 64"><path d="M18 32a8 8 0 0 1-2-15.6A12 12 0 0 1 41 12a10 10 0 0 1 3 19z" fill="#DCEFFB" stroke="#7FB3D5" stroke-width="3" stroke-linejoin="round"/><g stroke="#4EA8DE" stroke-width="3.5" stroke-linecap="round"><path d="M20 42l-2 7M32 42l-2 9M44 42l-2 7"/></g></svg>'},
+{c:'鸟',p:'niǎo',w:['小鸟','鸟儿','飞鸟'],s:'<svg viewBox="0 0 64 64"><ellipse cx="30" cy="38" rx="15" ry="11" fill="#6BCB77" stroke="#3E8E4E" stroke-width="3"/><circle cx="43" cy="22" r="8" fill="#6BCB77" stroke="#3E8E4E" stroke-width="3"/><path d="M50 21l8 3-8 3z" fill="#FF9F1C"/><circle cx="45" cy="20" r="1.8" fill="#1D3557"/><path d="M15 36l-9-6M16 42l-9-1" stroke="#3E8E4E" stroke-width="3" stroke-linecap="round"/></svg>'},
+{c:'鱼',p:'yú',w:['小鱼','金鱼','鱼肉'],s:'<svg viewBox="0 0 64 64"><ellipse cx="28" cy="34" rx="18" ry="12" fill="#FF9F6E" stroke="#E05D00" stroke-width="3"/><path d="M44 34l14-9v18z" fill="#FF9F6E" stroke="#E05D00" stroke-width="3" stroke-linejoin="round"/><circle cx="21" cy="31" r="2.5" fill="#1D3557"/><path d="M28 26q4 8 0 16" stroke="#E05D00" stroke-width="2.5" fill="none"/></svg>'},
+{c:'马',p:'mǎ',w:['小马','马上','木马'],s:'<svg viewBox="0 0 64 64"><ellipse cx="32" cy="38" rx="17" ry="10" fill="#C8A27A" stroke="#8B5E34" stroke-width="3"/><path d="M42 32l8-14 6 2-2 10-6 4z" fill="#C8A27A" stroke="#8B5E34" stroke-width="3" stroke-linejoin="round"/><g stroke="#8B5E34" stroke-width="3.5" stroke-linecap="round"><path d="M22 46v10M30 47v10M38 47v10M46 44v10M15 34l-8-4"/></g><circle cx="50" cy="22" r="1.6" fill="#1D3557"/></svg>'},
+{c:'牛',p:'niú',w:['小牛','牛奶','水牛'],s:'<svg viewBox="0 0 64 64"><path d="M14 18q-4-8 2-10 4 4 4 10M50 18q4-8-2-10-4 4-4 10" fill="none" stroke="#8B5E34" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="32" cy="34" rx="16" ry="14" fill="#F4E3D0" stroke="#8B5E34" stroke-width="3"/><ellipse cx="32" cy="42" rx="8" ry="5" fill="#F0B8B8"/><circle cx="26" cy="30" r="2" fill="#1D3557"/><circle cx="38" cy="30" r="2" fill="#1D3557"/></svg>'},
+{c:'羊',p:'yáng',w:['小羊','山羊','羊毛'],s:'<svg viewBox="0 0 64 64"><g fill="none" stroke="#8B5E34" stroke-width="3" stroke-linecap="round"><path d="M18 18q-8-6-6-12M46 18q8-6 6-12"/></g><circle cx="14" cy="14" r="5" fill="#F1F1F4" stroke="#8B5E34" stroke-width="3"/><circle cx="50" cy="14" r="5" fill="#F1F1F4" stroke="#8B5E34" stroke-width="3"/><ellipse cx="32" cy="36" rx="15" ry="13" fill="#fff" stroke="#8B5E34" stroke-width="3"/><circle cx="26" cy="32" r="2" fill="#1D3557"/><circle cx="38" cy="32" r="2" fill="#1D3557"/><path d="M29 42q3 3 6 0" stroke="#8B5E34" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>'},
+{c:'兔',p:'tù',w:['兔子','白兔','小兔'],s:'<svg viewBox="0 0 64 64"><ellipse cx="24" cy="14" rx="5" ry="10" fill="#fff" stroke="#B5838D" stroke-width="3"/><ellipse cx="40" cy="14" rx="5" ry="10" fill="#fff" stroke="#B5838D" stroke-width="3"/><circle cx="32" cy="40" r="14" fill="#fff" stroke="#B5838D" stroke-width="3"/><circle cx="26" cy="36" r="2" fill="#1D3557"/><circle cx="38" cy="36" r="2" fill="#1D3557"/><path d="M29 44q3 3 6 0" stroke="#B5838D" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>'},
+{c:'花',p:'huā',w:['花朵','红花','开花'],s:'<svg viewBox="0 0 64 64"><g fill="#FF8FA3" stroke="#E05D75" stroke-width="2.5"><circle cx="32" cy="16" r="8"/><circle cx="46" cy="24" r="8"/><circle cx="46" cy="40" r="8"/><circle cx="32" cy="48" r="8"/><circle cx="18" cy="40" r="8"/><circle cx="18" cy="24" r="8"/></g><circle cx="32" cy="32" r="7" fill="#FFD93D" stroke="#E0A800" stroke-width="2.5"/></svg>'},
+{c:'草',p:'cǎo',w:['小草','草地','青草'],s:'<svg viewBox="0 0 64 64"><g stroke="#5C940D" stroke-width="4" stroke-linecap="round" fill="none"><path d="M16 52V28q0-8-6-12M32 52V22M48 52V28q0-8 6-12M24 52V36M40 52V36"/></g></svg>'},
+{c:'树',p:'shù',w:['大树','树叶','果树'],s:'<svg viewBox="0 0 64 64"><circle cx="32" cy="22" r="16" fill="#6BCB77" stroke="#3E8E4E" stroke-width="3"/><path d="M32 34v22M24 56h16" stroke="#8B5E34" stroke-width="5" stroke-linecap="round" fill="none"/></svg>'},
+{c:'心',p:'xīn',w:['开心','爱心','小心'],s:'<svg viewBox="0 0 64 64"><path d="M32 54S10 40 10 24a11 11 0 0 1 22-2 11 11 0 0 1 22 2c0 16-22 30-22 30z" fill="#FF6B6B" stroke="#D94F4F" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'门',p:'mén',w:['大门','门口','开门'],s:'<svg viewBox="0 0 64 64"><rect x="14" y="8" width="36" height="48" rx="4" fill="#E8C79A" stroke="#8B5E34" stroke-width="3"/><circle cx="41" cy="33" r="3" fill="#8B5E34"/></svg>'},
+{c:'车',p:'chē',w:['汽车','火车','开车'],s:'<svg viewBox="0 0 64 64"><path d="M14 36l4-14h28l4 14z" fill="#8ECAE6" stroke="#2A6F97" stroke-width="3" stroke-linejoin="round"/><rect x="8" y="36" width="48" height="12" rx="5" fill="#4EA8DE" stroke="#2A6F97" stroke-width="3"/><circle cx="20" cy="50" r="6" fill="#3D3654"/><circle cx="44" cy="50" r="6" fill="#3D3654"/></svg>'},
+{c:'舟',p:'zhōu',w:['小舟','龙舟','轻舟'],s:'<svg viewBox="0 0 64 64"><path d="M10 42q22 14 44 0l-6 10H16z" fill="#C8A27A" stroke="#8B5E34" stroke-width="3" stroke-linejoin="round"/><path d="M32 40V12M32 14l16 12H32z" stroke="#8B5E34" stroke-width="3" fill="#FFD93D" stroke-linejoin="round"/></svg>'},
+{c:'刀',p:'dāo',w:['小刀','刀子','剪刀'],s:'<svg viewBox="0 0 64 64"><path d="M14 50L44 12l8 4-26 36z" fill="#DCEFFB" stroke="#6C6F7F" stroke-width="3" stroke-linejoin="round"/><rect x="10" y="46" width="14" height="9" rx="4" transform="rotate(-45 17 50)" fill="#8B5E34"/></svg>'},
+{c:'弓',p:'gōng',w:['弓箭','弯弓','拉弓'],s:'<svg viewBox="0 0 64 64"><path d="M44 6Q12 32 44 58" fill="none" stroke="#8B5E34" stroke-width="4" stroke-linecap="round"/><path d="M44 6v52" stroke="#3D3654" stroke-width="2.5"/></svg>'},
+{c:'衣',p:'yī',w:['衣服','上衣','大衣'],s:'<svg viewBox="0 0 64 64"><path d="M24 10l-4 4-10 6 4 8 6-3v28h24V25l6 3 4-8-10-6-4-4a8 6 0 0 1-16 0z" fill="#9B8CE8" stroke="#6C5CA8" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'米',p:'mǐ',w:['大米','米饭','小米'],s:'<svg viewBox="0 0 64 64"><path d="M10 34h44a22 14 0 0 1-44 0z" fill="#8ECAE6" stroke="#2A6F97" stroke-width="3"/><path d="M14 34q18-14 36 0" fill="#fff" stroke="#D9D2C5" stroke-width="3"/><g stroke="#D9D2C5" stroke-width="2.5" stroke-linecap="round"><path d="M24 26l3-4M32 24v-5M40 26l-3-4"/></g></svg>'},
+{c:'竹',p:'zhú',w:['竹子','竹林','竹叶'],s:'<svg viewBox="0 0 64 64"><g stroke="#5C940D" stroke-width="4" stroke-linecap="round"><path d="M24 6v52M40 10v48"/></g><g stroke="#3E8E4E" stroke-width="3" stroke-linecap="round"><path d="M18 20h12M18 38h12M34 24h12M34 42h12"/></g><path d="M46 8q8 2 10 8-8 2-12-2z" fill="#6BCB77"/></svg>'},
+{c:'瓜',p:'guā',w:['西瓜','瓜子','冬瓜'],s:'<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="20" fill="#6BCB77" stroke="#2E7D32" stroke-width="3"/><g stroke="#2E7D32" stroke-width="2.5" fill="none"><path d="M32 16v40M18 22q-4 14 0 28M46 22q4 14 0 28"/></g><path d="M32 16q0-8 8-8" stroke="#5C940D" stroke-width="3" fill="none" stroke-linecap="round"/></svg>'},
+{c:'果',p:'guǒ',w:['水果','苹果','果实'],s:'<svg viewBox="0 0 64 64"><circle cx="32" cy="38" r="18" fill="#FF6B6B" stroke="#D94F4F" stroke-width="3"/><path d="M32 20v-6M32 14q6-8 12-4-2 8-12 4z" stroke="#5C940D" stroke-width="3" fill="#6BCB77" stroke-linecap="round"/></svg>'},
+{c:'星',p:'xīng',w:['星星','星空','火星'],s:'<svg viewBox="0 0 64 64"><path d="M32 8l7 15 17 2-12 12 3 17-15-8-15 8 3-17L8 25l17-2z" fill="#FFD93D" stroke="#E0A800" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'天',p:'tiān',w:['天空','今天','白天'],s:'<svg viewBox="0 0 64 64"><path d="M8 12h48" stroke="#4EA8DE" stroke-width="5" stroke-linecap="round"/><g stroke="#3D3654" stroke-width="4" stroke-linecap="round" fill="none"><path d="M22 24h20M32 24v10M32 34L20 54M32 34l12 20"/></g></svg>'},
+{c:'一',p:'yī',w:['一个','第一','一起'],s:'<svg viewBox="0 0 64 64"><rect x="10" y="28" width="44" height="9" rx="4.5" fill="#FF6B6B"/></svg>'},
+{c:'二',p:'èr',w:['二个','第二','二月'],s:'<svg viewBox="0 0 64 64"><rect x="16" y="18" width="32" height="9" rx="4.5" fill="#4ECDC4"/><rect x="10" y="38" width="44" height="9" rx="4.5" fill="#4ECDC4"/></svg>'},
+{c:'三',p:'sān',w:['三个','第三','三月'],s:'<svg viewBox="0 0 64 64"><rect x="20" y="10" width="24" height="8" rx="4" fill="#9B5DE5"/><rect x="14" y="27" width="36" height="8" rx="4" fill="#9B5DE5"/><rect x="8" y="44" width="48" height="8" rx="4" fill="#9B5DE5"/></svg>'},
+{c:'上',p:'shàng',w:['上面','上学','向上'],s:'<svg viewBox="0 0 64 64"><path d="M8 54h48" stroke="#8B5E34" stroke-width="5" stroke-linecap="round"/><g stroke="#FF6B6B" stroke-width="5" stroke-linecap="round" fill="none"><path d="M32 44V14M20 26l12-12 12 12"/></g></svg>'},
+{c:'下',p:'xià',w:['下面','下去','下楼'],s:'<svg viewBox="0 0 64 64"><path d="M8 10h48" stroke="#4EA8DE" stroke-width="5" stroke-linecap="round"/><g stroke="#9B5DE5" stroke-width="5" stroke-linecap="round" fill="none"><path d="M32 20v30M20 38l12 12 12-12"/></g></svg>'},
+{c:'中',p:'zhōng',w:['中间','中国','心中'],s:'<svg viewBox="0 0 64 64"><rect x="14" y="22" width="36" height="22" rx="5" fill="#FFD93D" stroke="#E0A800" stroke-width="3"/><path d="M32 8v48" stroke="#D94F4F" stroke-width="5" stroke-linecap="round"/></svg>'},
+{c:'耳',p:'ěr',w:['耳朵','耳机','木耳'],s:'<svg viewBox="0 0 64 64"><path d="M24 12a14 14 0 0 1 28 4c0 10-8 12-12 18s-2 12-8 16a10 10 0 0 1-14-10" fill="#FFC8A2" stroke="#D98841" stroke-width="3" stroke-linejoin="round"/><path d="M34 20a7 7 0 0 1 8 8c-2 5-6 6-8 10" fill="none" stroke="#D98841" stroke-width="2.5" stroke-linecap="round"/></svg>'},
+{c:'贝',p:'bèi',w:['贝壳','宝贝','扇贝'],s:'<svg viewBox="0 0 64 64"><path d="M32 8a26 30 0 0 1 0 48 26 30 0 0 1 0-48z" fill="#FFD6E0" stroke="#E05D75" stroke-width="3"/><g stroke="#E05D75" stroke-width="2.5" fill="none" stroke-linecap="round"><path d="M32 12v40M20 16q-2 16 4 34M44 16q2 16-4 34"/></g></svg>'},
+{c:'虫',p:'chóng',w:['小虫','虫子','毛毛虫'],s:'<svg viewBox="0 0 64 64"><g fill="#A7C957" stroke="#6A994E" stroke-width="3"><circle cx="14" cy="40" r="8"/><circle cx="28" cy="38" r="9"/><circle cx="42" cy="36" r="9"/></g><circle cx="52" cy="30" r="8" fill="#C9E4A5" stroke="#6A994E" stroke-width="3"/><circle cx="54" cy="28" r="1.8" fill="#1D3557"/><path d="M50 22q-2-6-6-8M56 22q2-6 6-8" stroke="#6A994E" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>'},
+{c:'羽',p:'yǔ',w:['羽毛','白羽','羽衣'],s:'<svg viewBox="0 0 64 64"><path d="M20 54q-6-32 24-44 6 24-24 44z" fill="#BDE0FE" stroke="#4EA8DE" stroke-width="3" stroke-linejoin="round"/><path d="M20 54q10-22 22-38" stroke="#4EA8DE" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M28 40l-8-2M34 30l-9-3M39 21l-8-4" stroke="#4EA8DE" stroke-width="2" stroke-linecap="round"/></svg>'},
+{c:'角',p:'jiǎo',w:['牛角','角落','三角'],s:'<svg viewBox="0 0 64 64"><path d="M22 56Q14 24 44 10q4 26-22 46z" fill="#F4E3D0" stroke="#8B5E34" stroke-width="3" stroke-linejoin="round"/><path d="M28 42l12-2M34 30l10-1" stroke="#8B5E34" stroke-width="2.5" stroke-linecap="round"/></svg>'},
+{c:'毛',p:'máo',w:['毛发','毛巾','毛衣'],s:'<svg viewBox="0 0 64 64"><g stroke="#9B5DE5" stroke-width="4" stroke-linecap="round" fill="none"><path d="M16 54q-4-20 8-30M32 54q-4-24 8-36M48 54q-2-18 8-28M24 54q0-14 6-20M40 54q0-12 6-18"/></g></svg>'},
+{c:'网',p:'wǎng',w:['渔网','上网','网络'],s:'<svg viewBox="0 0 64 64"><rect x="10" y="14" width="44" height="38" rx="4" fill="#E8F6FF" stroke="#4EA8DE" stroke-width="3"/><g stroke="#4EA8DE" stroke-width="2.5"><path d="M21 14v38M32 14v38M43 14v38M10 27h44M10 40h44"/></g></svg>'},
+{c:'井',p:'jǐng',w:['水井','井水','打井'],s:'<svg viewBox="0 0 64 64"><g stroke="#8B5E34" stroke-width="4" stroke-linecap="round"><path d="M24 8v48M40 8v48M8 24h48M8 40h48"/></g></svg>'},
+{c:'立',p:'lì',w:['站立','立正','起立'],s:'<svg viewBox="0 0 64 64"><circle cx="32" cy="12" r="6" fill="#FFC8A2" stroke="#D98841" stroke-width="3"/><g stroke="#3D3654" stroke-width="4" stroke-linecap="round" fill="none"><path d="M32 20v16M16 28h32M32 36l-8 16M32 36l8 16M12 54h40"/></g></svg>'},
+{c:'风',p:'fēng',w:['大风','风车','春风'],s:'<svg viewBox="0 0 64 64"><g stroke="#4ECDC4" stroke-width="4" stroke-linecap="round" fill="none"><path d="M8 22h28a8 8 0 1 0-8-8"/><path d="M8 34h38a8 8 0 1 1-8 8"/><path d="M8 46h20"/></g></svg>'},
+{c:'雪',p:'xuě',w:['下雪','雪花','雪人'],s:'<svg viewBox="0 0 64 64"><path d="M18 28a8 8 0 0 1-2-15.6A12 12 0 0 1 41 8a10 10 0 0 1 3 19z" fill="#F4FAFF" stroke="#A9C7E8" stroke-width="3" stroke-linejoin="round"/><g stroke="#7FB3D5" stroke-width="2.5" stroke-linecap="round"><path d="M20 40v10M15 45h10M17 41.5l6 7M23 41.5l-6 7M42 42v10M37 47h10M39 43.5l6 7M45 43.5l-6 7"/></g></svg>'},
+{c:'电',p:'diàn',w:['闪电','电灯','电话'],s:'<svg viewBox="0 0 64 64"><path d="M36 6L16 36h12l-4 22 24-32H34z" fill="#FFD93D" stroke="#E0A800" stroke-width="3" stroke-linejoin="round"/></svg>'},
+{c:'冰',p:'bīng',w:['冰块','冰雪','结冰'],s:'<svg viewBox="0 0 64 64"><path d="M32 8l18 10v20L32 56 14 38V18z" fill="#D8F3FF" stroke="#5EB1E0" stroke-width="3" stroke-linejoin="round"/><g stroke="#5EB1E0" stroke-width="2.5" fill="none"><path d="M32 8v24l18 6M32 32L14 38M32 32v24"/></g></svg>'},
+{c:'森',p:'sēn',w:['森林','松柏','森严'],s:'<svg viewBox="0 0 64 64"><g fill="#6BCB77" stroke="#3E8E4E" stroke-width="2.5"><circle cx="32" cy="14" r="10"/><circle cx="16" cy="32" r="10"/><circle cx="48" cy="32" r="10"/></g><g stroke="#8B5E34" stroke-width="3.5" stroke-linecap="round"><path d="M32 22v14M16 40v16M48 40v16M32 36v20"/></g></svg>'},
+{c:'林',p:'lín',w:['树林','森林','竹林'],s:'<svg viewBox="0 0 64 64"><g fill="#6BCB77" stroke="#3E8E4E" stroke-width="2.5"><circle cx="20" cy="24" r="12"/><circle cx="44" cy="24" r="12"/></g><g stroke="#8B5E34" stroke-width="3.5" stroke-linecap="round"><path d="M20 34v22M44 34v22"/></g></svg>'},
+{c:'禾',p:'hé',w:['禾苗','禾田','青禾'],s:'<svg viewBox="0 0 64 64"><path d="M32 20v36" stroke="#5C940D" stroke-width="4" stroke-linecap="round"/><path d="M32 20q-10-2-16-12 12-2 16 4 4-6 16-4-6 10-16 12z" fill="#CDEAC0" stroke="#5C940D" stroke-width="3" stroke-linejoin="round"/><path d="M32 34q-8 0-14-6M32 42q8 0 14-6" stroke="#5C940D" stroke-width="3" fill="none" stroke-linecap="round"/></svg>'}
+];
+
+var BANK_EXTRA=[{c:'丁',p:'dīng',w:['马丁','拉丁','补丁']},{c:'七',p:'qī',w:['七月','七个','七年']},{c:'万',p:'wàn',w:['万元','千万','百万']},{c:'丈',p:'zhàng',w:['丈夫','方丈']},{c:'不',p:'bù',w:['不是','不能','不会']},{c:'与',p:'yǔ',w:['参与','与会','给与']},{c:'丐',p:'gài',w:['乞丐','丐帮']},{c:'丑',p:'chǒu',w:['丑闻','丑陋','小丑']},{c:'专',p:'zhuān',w:['专业','专家','专门']},{c:'且',p:'qiě',w:['而且','并且','且为']},{c:'世',p:'shì',w:['世界','世纪','去世']},{c:'丘',p:'qiū',w:['丘陵','山丘','沙丘']},{c:'丙',p:'bǐng',w:['三丙','丙国','丙未']},{c:'业',p:'yè',w:['企业','专业','工业']},{c:'丛',p:'cóng',w:['丛林','丛书','草丛']},{c:'东',p:'dōng',w:['东西','广东','山东']},{c:'丝',p:'sī',w:['粉丝','丝毫','一丝']},{c:'丢',p:'diū',w:['丢脸','丢失','丢掉']},{c:'两',p:'liǎng',w:['两个','两年','两种']},{c:'严',p:'yán',w:['严重','严格','严肃']},{c:'丧',p:'sàng',w:['丧失','沮丧','丧生']},{c:'个',p:'gè',w:['一个','这个','两个']},{c:'串',p:'chuàn',w:['一串','串联','串通']},{c:'临',p:'lín',w:['面临','临时','临床']},{c:'丸',p:'wán',w:['药丸','丸子','弹丸']},{c:'丹',p:'dān',w:['丹麦','苏丹','乔丹']},{c:'为',p:'wèi',w:['因为','成为','认为']},{c:'主',p:'zhǔ',w:['主要','民主','主席']},{c:'丽',p:'lì',w:['美丽','玛丽','华丽']},{c:'举',p:'jǔ',w:['举行','选举','举办']},{c:'乃',p:'nǎi',w:['乃至','乃是','乃能']},{c:'久',p:'jiǔ',w:['不久','多久','永久']},{c:'么',p:'me',w:['什么','怎么','那么']},{c:'义',p:'yì',w:['意义','主义','正义']},{c:'之',p:'zhī',w:['之后','之间','之前']},{c:'乌',p:'wū',w:['乌龟','乌鸦','乌云']},{c:'乍',p:'zhà',w:['乍得']},{c:'乎',p:'hū',w:['几乎','似乎','在乎']},{c:'乏',p:'fá',w:['缺乏','不乏','贫乏']},{c:'乐',p:'lè',w:['音乐','快乐','娱乐']},{c:'乒',p:'pīng',w:['乒乓']},{c:'乓',p:'pāng',w:['乒乓']},{c:'乔',p:'qiáo',w:['乔治','乔丹','乔木']},{c:'乖',p:'guāi',w:['乖乖','乖巧']},{c:'乘',p:'chéng',w:['乘客','乘坐','搭乘']},{c:'乙',p:'yǐ',w:['乙醇','乙肝','乙地']},{c:'九',p:'jiǔ',w:['九月','十九','九个']},{c:'乞',p:'qǐ',w:['乞丐','乞讨','乞求']},{c:'也',p:'yě',w:['也许','再也','非也']},{c:'习',p:'xí',w:['学习','习惯','练习']},{c:'乡',p:'xiāng',w:['乡村','家乡','城乡']},{c:'书',p:'shū',w:['书记','秘书','书籍']},{c:'买',p:'mǎi',w:['购买','买卖','买者']},{c:'乱',p:'luàn',w:['混乱','叛乱','动乱']},{c:'乳',p:'rǔ',w:['乳房','乳头','母乳']},{c:'乾',p:'qián',w:['乾上','乾县','乾隆']},{c:'了',p:'le',w:['为了','对了','了解']},{c:'予',p:'yǔ',w:['给予','赋予','授予']},{c:'争',p:'zhēng',w:['战争','争取','竞争']},{c:'事',p:'shì',w:['事件','事情','故事']},{c:'于',p:'yú',w:['对于','由于','关于']},{c:'亏',p:'kuī',w:['亏损','幸亏','多亏']},{c:'互',p:'hù',w:['互相','相互','互动']},{c:'五',p:'wǔ',w:['五年','五月','五个']},{c:'亚',p:'yà',w:['亚洲','东亚','西亚']},{c:'些',p:'xiē',w:['这些','一些','那些']},{c:'亡',p:'wáng',w:['伤亡','身亡','灭亡']},{c:'交',p:'jiāo',w:['交易','交通','交流']},{c:'亥',p:'hài',w:['俄亥俄']},{c:'亦',p:'yì',w:['亦非','亦且','亦可']},{c:'产',p:'chǎn',w:['产品','生产','产生']},{c:'亩',p:'mǔ',w:['万亩','英亩','一亩']},{c:'享',p:'xiǎng',w:['分享','享受','享有']},{c:'京',p:'jīng',w:['北京','南京','东京']},{c:'亭',p:'tíng',w:['亭台','亭长','长亭']},{c:'亮',p:'liàng',w:['漂亮','月亮','亮相']},{c:'亲',p:'qīn',w:['母亲','父亲','亲自']},{c:'亿',p:'yì',w:['亿元','亿个','多亿']},{c:'什',p:'shén',w:['什么','布什','纳什']},{c:'仁',p:'rén',w:['仁川','同仁','仁慈']},{c:'仅',p:'jǐn',w:['不仅','仅仅','仅及']},{c:'仆',p:'pū',w:['仆人','女仆','公仆']},{c:'仇',p:'chóu',w:['报仇','复仇','仇视']},{c:'今',p:'jīn',w:['今天','今年','今日']},{c:'介',p:'jiè',w:['介绍','简介','介入']},{c:'仍',p:'réng',w:['仍然','仍来','仍要']},{c:'从',p:'cóng',w:['从事','从而','从来']},{c:'仑',p:'lún',w:['昆仑']},{c:'仓',p:'cāng',w:['仓库','仓储','仓促']},{c:'仔',p:'zǎi',w:['仔细','牛仔','公仔']},{c:'他',p:'tā',w:['他们','其他','这他']},{c:'仗',p:'zhàng',w:['打仗','胜仗']},{c:'付',p:'fù',w:['支付','对付','付出']},{c:'仙',p:'xiān',w:['神仙','仙女','仙子']},{c:'代',p:'dài',w:['代表','时代','年代']},{c:'令',p:'lìng',w:['命令','令人','下令']},{c:'以',p:'yǐ',w:['可以','以及','所以']},{c:'仪',p:'yí',w:['仪式','仪器','礼仪']},{c:'们',p:'men',w:['我们','他们','你们']},{c:'仰',p:'yǎng',w:['信仰','仰望','敬仰']},{c:'件',p:'jiàn',w:['事件','条件','文件']},{c:'价',p:'jià',w:['价值','价格','评价']},{c:'任',p:'rèn',w:['任何','任务','责任']},{c:'份',p:'fèn',w:['身份','一份','股份']},{c:'仿',p:'fǎng',w:['模仿','仿佛','仿真']},{c:'企',p:'qǐ',w:['企业','企图','企鹅']},{c:'伊',p:'yī',w:['伊朗','伊万','伊尔']},{c:'伍',p:'wǔ',w:['队伍','退伍','入伍']},{c:'伏',p:'fú',w:['起伏','潜伏','埋伏']},{c:'伐',p:'fá',w:['步伐','讨伐','北伐']},{c:'休',p:'xiū',w:['休息','退休','休闲']},{c:'众',p:'zhòng',w:['群众','公众','民众']},{c:'优',p:'yōu',w:['优秀','优势','优惠']},{c:'伙',p:'huǒ',w:['伙伴','家伙','合伙']},{c:'会',p:'huì',w:['社会','不会','会议']},{c:'伞',p:'sǎn',w:['雨伞','跳伞','伞兵']},{c:'伟',p:'wěi',w:['伟大','宏伟','伟哥']},{c:'传',p:'chuán',w:['传统','宣传','传播']},{c:'伤',p:'shāng',w:['伤害','受伤','伤心']},{c:'伦',p:'lún',w:['伦敦','伦理','艾伦']},{c:'伪',p:'wěi',w:['伪造','虚伪','伪装']},{c:'伯',p:'bó',w:['伯爵','伯伯','伯父']},{c:'估',p:'gū',w:['估计','评估','低估']},{c:'伴',p:'bàn',w:['伙伴','伴随','伴侣']},{c:'伶',p:'líng',w:['伶人','名伶','女伶']},{c:'伸',p:'shēn',w:['延伸','伸出','伸手']},{c:'伺',p:'cì',w:['伺候','伺机']},{c:'似',p:'shì',w:['类似','似乎','相似']},{c:'佃',p:'diàn',w:['东佃','佃农','佃客']},{c:'但',p:'dàn',w:['但是','但有','不但']},{c:'位',p:'wèi',w:['单位','一位','位于']},{c:'低',p:'dī',w:['降低','最低','低于']},{c:'住',p:'zhù',w:['居住','住宅','记住']},{c:'佑',p:'yòu',w:['保佑','天佑']},{c:'体',p:'tǐ',w:['媒体','身体','体育']},{c:'何',p:'hé',w:['如何','任何','为何']},{c:'余',p:'yú',w:['其余','余额','业余']},{c:'佛',p:'fú',w:['佛教','仿佛','哈佛']},{c:'作',p:'zuò',w:['工作','作为','合作']},{c:'你',p:'nǐ',w:['你们','你好','迷你']},{c:'佣',p:'yōng',w:['雇佣','女佣','佣金']},{c:'佩',p:'pèi',w:['佩服','佩戴','敬佩']},{c:'佳',p:'jiā',w:['最佳','绝佳','胡佳']},{c:'侄',p:'zhí',w:['侄子','侄女','侄儿']},{c:'侈',p:'chǐ',w:['奢侈']},{c:'例',p:'lì',w:['例如','比例','条例']},{c:'侍',p:'shì',w:['侍郎','服侍','侍卫']},{c:'供',p:'gōng',w:['提供','供应','供给']},{c:'依',p:'yī',w:['依据','依然','依法']},{c:'侠',p:'xiá',w:['武侠','大侠','侠盗']},{c:'侣',p:'lǚ',w:['情侣','伴侣','僧侣']},{c:'侥',p:'jiǎo',w:['侥幸']},{c:'侦',p:'zhēn',w:['侦探','侦查','侦察']},{c:'侧',p:'cè',w:['两侧','东侧','侧面']},{c:'侨',p:'qiáo',w:['华侨','侨民','侨胞']},{c:'侮',p:'wǔ',w:['侮辱']},{c:'侯',p:'hóu',w:['诸侯','侯爵']},{c:'侵',p:'qīn',w:['入侵','侵略','侵害']},{c:'便',p:'biàn',w:['方便','随便','便宜']},{c:'促',p:'cù',w:['促进','促成','促销']},{c:'俄',p:'é',w:['俄国','俄语','中俄']},{c:'俊',p:'jùn',w:['英俊','李俊']},{c:'俏',p:'qiào',w:['俏皮']},{c:'俐',p:'lì',w:['俐落','麻俐','伶俐']},{c:'俗',p:'sú',w:['习俗','俗称','风俗']},{c:'俘',p:'fú',w:['俘虏','战俘','被俘']},{c:'保',p:'bǎo',w:['保护','保证','保持']},{c:'信',p:'xìn',w:['信息','相信','信号']},{c:'俩',p:'liǎ',w:['他俩','咱俩','你俩']},{c:'俭',p:'jiǎn',w:['节俭','勤俭']},{c:'修',p:'xiū',w:['修改','维修','修正']},{c:'俯',p:'fǔ',w:['俯冲','俯视']},{c:'俱',p:'jù',w:['俱乐部']},{c:'俺',p:'ǎn',w:['俺们','俺家','俺村']},{c:'倍',p:'bèi',w:['两倍','一倍','多倍']},{c:'倒',p:'dào',w:['打倒','倒闭','倒好']},{c:'倔',p:'jué',w:['倔强']},{c:'倘',p:'tǎng',w:['倘若']},{c:'候',p:'hòu',w:['时候','气候','等候']},{c:'倚',p:'yǐ',w:['倚天']},{c:'借',p:'jiè',w:['借口','凭借','借款']},{c:'倡',p:'chàng',w:['提倡','倡导','倡议']},{c:'倦',p:'juàn',w:['厌倦','疲倦']},{c:'债',p:'zhài',w:['债务','债券','负债']},{c:'值',p:'zhí',w:['价值','值得','产值']},{c:'倾',p:'qīng',w:['倾向','倾斜','倾听']},{c:'假',p:'jiǎ',w:['假设','假如','假装']},{c:'偎',p:'wēi',w:['依偎','偎依','偎抱']},{c:'偏',p:'piān',w:['偏见','偏偏','偏向']},{c:'做',p:'zuò',w:['做为','做出','做到']},{c:'停',p:'tíng',w:['停止','不停','暂停']},{c:'健',p:'jiàn',w:['健康','健全','保健']},{c:'偶',p:'ǒu',w:['偶像','偶尔','偶然']},{c:'偷',p:'tōu',w:['偷偷','小偷','偷拍']},{c:'偿',p:'cháng',w:['补偿','赔偿','偿还']},{c:'傀',p:'guī',w:['傀儡']},{c:'傅',p:'fù',w:['师傅']},{c:'傍',p:'bàng',w:['傍晚']},{c:'储',p:'chǔ',w:['储存','存储','储备']},{c:'催',p:'cuī',w:['催眠','催化','催生']},{c:'傲',p:'ào',w:['骄傲','傲慢','高傲']},{c:'傻',p:'shǎ',w:['傻子','傻瓜','傻事']},{c:'像',p:'xiàng',w:['好像','像是','图像']},{c:'僚',p:'liáo',w:['官僚','幕僚','同僚']},{c:'僧',p:'sēng',w:['僧人','僧侣','高僧']},{c:'僵',p:'jiāng',w:['僵局','僵硬','僵化']},{c:'僻',p:'pì',w:['偏僻']},{c:'儒',p:'rú',w:['儒家','儒学','儒教']},{c:'儡',p:'lěi',w:['傀儡']},{c:'儿',p:'ér',w:['儿子','女儿','儿童']},{c:'允',p:'yǔn',w:['允许','允诺','公允']},{c:'元',p:'yuán',w:['美元','万元','亿元']},{c:'兄',p:'xiōng',w:['兄弟','弟兄','兄妹']},{c:'充',p:'chōng',w:['充满','补充','充分']},{c:'兆',p:'zhào',w:['征兆','预兆','前兆']},{c:'先',p:'xiān',w:['先生','首先','先进']},{c:'光',p:'guāng',w:['阳光','时光','光明']},{c:'克',p:'kè',w:['坦克','马克','克服']},{c:'免',p:'miǎn',w:['免费','避免','以免']},{c:'兑',p:'duì',w:['兑换','兑现','汇兑']},{c:'党',p:'dǎng',w:['政党','党员','党委']},{c:'兜',p:'dōu',w:['兜售','兜里']},{c:'兢',p:'jīng',w:['克兢']},{c:'入',p:'rù',w:['进入','加入','收入']},{c:'全',p:'quán',w:['全国','安全','完全']},{c:'八',p:'bā',w:['十八','八年','八月']},{c:'公',p:'gōng',w:['公司','公开','公民']},{c:'六',p:'liù',w:['六月','六个','六年']},{c:'兰',p:'lán',w:['荷兰','波兰','芬兰']},{c:'共',p:'gòng',w:['共同','中共','公共']},{c:'关',p:'guān',w:['关系','关于','有关']},{c:'兴',p:'xīng',w:['兴趣','高兴','兴奋']},{c:'兵',p:'bīng',w:['士兵','步兵','民兵']},{c:'其',p:'qí',w:['其他','其中','其实']},{c:'具',p:'jù',w:['具有','工具','具体']},{c:'典',p:'diǎn',w:['经典','典型','瑞典']},{c:'养',p:'yǎng',w:['培养','营养','养殖']},{c:'兼',p:'jiān',w:['兼职','兼任','兼及']},{c:'兽',p:'shòu',w:['野兽','怪兽','禽兽']},{c:'冀',p:'jì',w:['希冀']},{c:'内',p:'nèi',w:['内容','国内','内部']},{c:'冈',p:'gāng',w:['黄冈','福冈','冈田']},{c:'册',p:'cè',w:['注册','手册','相册']},{c:'再',p:'zài',w:['不再','再次','再也']},{c:'冒',p:'mào',w:['冒险','感冒','假冒']},{c:'冕',p:'miǎn',w:['卫冕','加冕']},{c:'冗',p:'rǒng',w:['冗长']},{c:'写',p:'xiě',w:['写作','描写','听写']},{c:'军',p:'jūn',w:['军队','军事','冠军']},{c:'农',p:'nóng',w:['农业','农民','农村']},{c:'冠',p:'guān',w:['冠军','皇冠','王冠']},{c:'冤',p:'yuān',w:['冤枉','冤家','冤案']},{c:'冬',p:'dōng',w:['冬天','冬季','寒冬']},{c:'冯',p:'féng',w:['冯玉祥','冯小刚']},{c:'冲',p:'chōng',w:['冲突','冲击','冲动']},{c:'决',p:'jué',w:['决定','解决','决议']},{c:'况',p:'kuàng',w:['情况','状况','概况']},{c:'冶',p:'yě',w:['冶金','冶炼']},{c:'冷',p:'lěng',w:['冷静','冷战','寒冷']},{c:'冻',p:'dòng',w:['冻结','冷冻','解冻']},{c:'净',p:'jìng',w:['干净','净化','纯净']},{c:'凄',p:'qī',w:['凄凉']},{c:'准',p:'zhǔn',w:['准备','标准','批准']},{c:'凉',p:'liáng',w:['凉爽','清凉','荒凉']},{c:'凌',p:'líng',w:['凌晨','凌辱','欺凌']},{c:'减',p:'jiǎn',w:['减少','减轻','减肥']},{c:'凑',p:'còu',w:['紧凑','凑合','拼凑']},{c:'凛',p:'lǐn',w:['大凛','凛然','凛凛']},{c:'凝',p:'níng',w:['凝聚','凝结','凝固']},{c:'几',p:'jǐ',w:['几个','几乎','几天']},{c:'凡',p:'fán',w:['凡是','平凡','非凡']},{c:'凤',p:'fèng',w:['凤凰','凤山','龙凤']},{c:'凫',p:'fú',w:['凫水']},{c:'凭',p:'píng',w:['凭借','文凭','凭证']},{c:'凯',p:'kǎi',w:['凯特','凯文','凯撒']},{c:'凰',p:'huáng',w:['凤凰']},{c:'凳',p:'dèng',w:['板凳','凳子','长凳']},{c:'凶',p:'xiōng',w:['凶手','凶狠','凶猛']},{c:'凸',p:'tū',w:['凸显','凸现','凸起']},{c:'凹',p:'āo',w:['凹陷']},{c:'出',p:'chū',w:['出现','出来','提出']},{c:'击',p:'jī',w:['攻击','打击','袭击']},{c:'函',p:'hán',w:['函数','信函','致函']},{c:'凿',p:'záo',w:['开凿','确凿']},{c:'刁',p:'diāo',w:['刁难']},{c:'刃',p:'rèn',w:['刀刃']},{c:'分',p:'fēn',w:['部分','分析','分别']},{c:'切',p:'qiè',w:['一切','密切','切实']},{c:'刊',p:'kān',w:['周刊','刊登','期刊']},{c:'刑',p:'xíng',w:['刑事','刑罚','刑法']},{c:'划',p:'huà',w:['计划','规划','划分']},{c:'列',p:'liè',w:['系列','列为','列车']},{c:'刘',p:'liú',w:['刘备','刘翔','刘邦']},{c:'则',p:'zé',w:['原则','规则','否则']},{c:'刚',p:'gāng',w:['刚刚','刚才','刚好']},{c:'创',p:'chuàng',w:['创新','创造','创作']},{c:'初',p:'chū',w:['当初','初期','最初']},{c:'删',p:'shān',w:['删除','删减','被删']},{c:'判',p:'pàn',w:['审判','判断','谈判']},{c:'刨',p:'páo',w:['刨地','刨成','刨子']},{c:'利',p:'lì',w:['利用','权利','利益']},{c:'别',p:'bié',w:['特别','别人','分别']},{c:'刮',p:'guā',w:['刮下','刮去','刮好']},{c:'到',p:'dào',w:['看到','得到','受到']},{c:'制',p:'zhì',w:['控制','制度','限制']},{c:'刷',p:'shuā',w:['印刷','刷新','刷上']},{c:'券',p:'quàn',w:['证券','债券','券商']},{c:'刹',p:'shā',w:['刹车','刹那']},{c:'刺',p:'cì',w:['刺激','讽刺','刺客']},{c:'刻',p:'kè',w:['时刻','立刻','深刻']},{c:'刽',p:'guì',w:['刽子手']},{c:'剂',p:'jì',w:['剂量','调剂','药剂']},{c:'剃',p:'tì',w:['剃头']},{c:'削',p:'xuē',w:['剥削','削弱','削减']},{c:'前',p:'qián',w:['目前','之前','以前']},{c:'剑',p:'jiàn',w:['宝剑','剑桥','一剑']},{c:'剔',p:'tī',w:['剔除','挑剔']},{c:'剖',p:'pōu',w:['解剖','剖析','剖面']},{c:'剥',p:'bō',w:['剥削','剥离']},{c:'剧',p:'jù',w:['戏剧','剧情','剧本']},{c:'剩',p:'shèng',w:['剩下','剩余','过剩']},{c:'剪',p:'jiǎn',w:['剪辑','剪刀','修剪']},{c:'副',p:'fù',w:['三副','两副','一副']},{c:'割',p:'gē',w:['分割','切割','收割']},{c:'剿',p:'jiǎo',w:['围剿','清剿','剿匪']},{c:'劈',p:'pī',w:['劈到','劈开','劈成']},{c:'力',p:'lì',w:['能力','努力','力量']},{c:'劝',p:'quàn',w:['劝说','劝告','劝阻']},{c:'办',p:'bàn',w:['办法','举办','办理']},{c:'功',p:'gōng',w:['成功','功能','功夫']},{c:'加',p:'jiā',w:['参加','增加','加入']},{c:'务',p:'wù',w:['服务','任务','业务']},{c:'劣',p:'liè',w:['恶劣','劣势','低劣']},{c:'动',p:'dòng',w:['活动','运动','行动']},{c:'助',p:'zhù',w:['帮助','协助','援助']},{c:'努',p:'nǔ',w:['努力','努尔']},{c:'劫',p:'jié',w:['劫持','洗劫','浩劫']},{c:'励',p:'lì',w:['鼓励','奖励','激励']},{c:'劲',p:'jìn',w:['强劲','差劲','后劲']},{c:'劳',p:'láo',w:['劳动','劳工','劳务']},{c:'势',p:'shì',w:['优势','势力','趋势']},{c:'勃',p:'bó',w:['勃起','蓬勃','哈勃']},{c:'勇',p:'yǒng',w:['勇气','勇敢','勇士']},{c:'勉',p:'miǎn',w:['勉强','勉励']},{c:'勋',p:'xūn',w:['勋章','功勋','勋爵']},{c:'勒',p:'lēi',w:['泰勒','勒斯','勒索']},{c:'勘',p:'kān',w:['勘探','勘察','勘测']},{c:'募',p:'mù',w:['招募','募集','募捐']},{c:'勤',p:'qín',w:['后勤','勤劳','勤奋']},{c:'勺',p:'sháo',w:['勺子']},{c:'勾',p:'gōu',w:['勾结','勾引','勾当']},{c:'勿',p:'wù',w:['请勿','切勿','勿扰']},{c:'匀',p:'yún',w:['均匀']},{c:'包',p:'bāo',w:['包括','包含','包装']},{c:'匆',p:'cōng',w:['匆匆','匆忙']},{c:'匈',p:'xiōng',w:['匈牙利']},{c:'匕',p:'bǐ',w:['匕首']},{c:'化',p:'huà',w:['文化','变化','化学']},{c:'北',p:'běi',w:['北京','东北','湖北']},{c:'匙',p:'shi',w:['钥匙','汤匙']},{c:'匠',p:'jiàng',w:['工匠','木匠','铁匠']},{c:'匣',p:'xiá',w:['弹匣']},{c:'匪',p:'fěi',w:['土匪','匪徒','劫匪']},{c:'匹',p:'pǐ',w:['匹配','一匹','马匹']},{c:'区',p:'qū',w:['地区','区域','社区']},{c:'医',p:'yī',w:['医院','医疗','医生']},{c:'匾',p:'biǎn',w:['匾额']},{c:'匿',p:'nì',w:['匿名','隐匿','藏匿']},{c:'十',p:'shí',w:['十分','十年','十大']},{c:'千',p:'qiān',w:['千万','千年','千米']},{c:'升',p:'shēng',w:['提升','升级','上升']},{c:'午',p:'wǔ',w:['下午','上午','中午']},{c:'半',p:'bàn',w:['一半','半岛','半年']},{c:'华',p:'huá',w:['中华','华人','豪华']},{c:'协',p:'xié',w:['协议','协会','协助']},{c:'卑',p:'bēi',w:['卑鄙','自卑','卑劣']},{c:'卒',p:'zú',w:['小卒','走卒','卒岁']},{c:'卓',p:'zhuó',w:['卓越','卓著']},{c:'单',p:'dān',w:['单位','简单','名单']},{c:'卖',p:'mài',w:['买卖','出卖','拍卖']},{c:'南',p:'nán',w:['南京','越南','南部']},{c:'博',p:'bó',w:['博士','博客','博彩']},{c:'卜',p:'bo',w:['萝卜','占卜']},{c:'占',p:'zhàn',w:['占领','占据','占有']},{c:'卡',p:'kǎ',w:['卡尔','卡拉','卡车']},{c:'卢',p:'lú',w:['卢比','卢布','卢梭']},{c:'卤',p:'lǔ',w:['卤制','卤水','卤化']},{c:'卦',p:'guà',w:['八卦']},{c:'卧',p:'wò',w:['卧室','卧底','卧床']},{c:'卫',p:'wèi',w:['卫生','卫星','保卫']},{c:'印',p:'yìn',w:['印度','印象','印尼']},{c:'危',p:'wēi',w:['危险','危机','危害']},{c:'即',p:'jí',w:['立即','即将','即为']},{c:'却',p:'què',w:['却是','却道','省却']},{c:'卵',p:'luǎn',w:['产卵','卵巢','卵子']},{c:'卷',p:'juǎn',w:['卷入','上卷','下卷']},{c:'卸',p:'xiè',w:['卸任','卸载','装卸']},{c:'卿',p:'qīng',w:['国务卿']},{c:'厂',p:'chǎng',w:['工厂','厂商','厂家']},{c:'厅',p:'tīng',w:['餐厅','大厅','客厅']},{c:'历',p:'lì',w:['历史','经历','学历']},{c:'厉',p:'lì',w:['厉害','严厉']},{c:'压',p:'yā',w:['压力','镇压','压迫']},{c:'厌',p:'yàn',w:['讨厌','厌恶','厌倦']},{c:'厕',p:'cè',w:['厕所','公厕','如厕']},{c:'厘',p:'lí',w:['厘米']},{c:'厚',p:'hòu',w:['浓厚','深厚','厚度']},{c:'原',p:'yuán',w:['原因','原来','原则']},{c:'厢',p:'xiāng',w:['车厢','包厢','厢房']},{c:'厦',p:'shà',w:['厦门','大厦']},{c:'厨',p:'chú',w:['厨房','厨师','厨艺']},{c:'去',p:'qù',w:['过去','失去','去年']},{c:'县',p:'xiàn',w:['和县','县里','县委']},{c:'叁',p:'sān',w:['叁天','第叁']},{c:'参',p:'cān',w:['参加','参与','参考']},{c:'又',p:'yòu',w:['又称','又名']},{c:'叉',p:'chā',w:['交叉','分叉']},{c:'及',p:'jí',w:['以及','及其','涉及']},{c:'友',p:'yǒu',w:['朋友','网友','女友']},{c:'双',p:'shuāng',w:['双方','双手','双重']},{c:'反',p:'fǎn',w:['反对','反应','反映']},{c:'发',p:'fā',w:['发展','发生','发现']},{c:'叔',p:'shū',w:['叔叔','大叔','叔父']},{c:'取',p:'qǔ',w:['取得','采取','取消']},{c:'受',p:'shòu',w:['接受','受到','感受']},{c:'变',p:'biàn',w:['改变','变化','变成']},{c:'叙',p:'xù',w:['叙述','叙事']},{c:'叛',p:'pàn',w:['背叛','叛乱','叛徒']},{c:'叠',p:'dié',w:['重叠','折叠','叠加']},{c:'古',p:'gǔ',w:['古代','蒙古','古老']},{c:'句',p:'jù',w:['一句','句子','几句']},{c:'另',p:'lìng',w:['另外','另为','另于']},{c:'叨',p:'dāo',w:['唠叨','念叨']},{c:'只',p:'zhǐ',w:['只是','只有','只要']},{c:'叫',p:'jiào',w:['叫做','名叫','号叫']},{c:'召',p:'zhào',w:['召开','号召','召集']},{c:'叭',p:'bā',w:['喇叭']},{c:'叮',p:'dīng',w:['叮当','叮嘱']},{c:'可',p:'kě',w:['可以','可能','可是']},{c:'台',p:'tái',w:['台湾','平台','电台']},{c:'史',p:'shǐ',w:['历史','史料','小史']},{c:'右',p:'yòu',w:['左右','右派','右手']},{c:'叶',p:'yè',w:['茶叶','叶子','中叶']},{c:'号',p:'hào',w:['信号','年号','号码']},{c:'司',p:'sī',w:['公司','司法','司机']},{c:'叹',p:'tàn',w:['感叹','叹息','叹气']},{c:'叽',p:'jī',w:['叽驾','磨叽']},{c:'吁',p:'xū',w:['呼吁']},{c:'吃',p:'chī',w:['吃饭','好吃','吃请']},{c:'各',p:'gè',w:['各种','各国','各地']},{c:'吆',p:'yāo',w:['吆喝','吆喊','吆呼']},{c:'合',p:'hé',w:['合作','综合','结合']},{c:'吉',p:'jí',w:['吉林','吉他','吉利']},{c:'吊',p:'diào',w:['吊销','上吊','吊唁']},{c:'同',p:'tóng',w:['同时','不同','共同']},{c:'名',p:'míng',w:['名字','一名','著名']},{c:'后',p:'hòu',w:['最后','之后','然后']},{c:'吏',p:'lì',w:['官吏','吏部']},{c:'吐',p:'tǔ',w:['呕吐','吐到','吐出']},{c:'向',p:'xiàng',w:['方向','走向','倾向']},{c:'吓',p:'xià',w:['恐吓','吓坏','吓人']},{c:'吕',p:'lǚ',w:['吕布','吕梁']},{c:'吗',p:'ma',w:['干吗','懂吗','吗啡']},{c:'君',p:'jūn',w:['君主','君子','君王']},{c:'吝',p:'lìn',w:['不吝','吝舍','吝色']},{c:'吞',p:'tūn',w:['吞并','侵吞','吞下']},{c:'吟',p:'yín',w:['呻吟','吟唱','吟诗']},{c:'吠',p:'fèi',w:['叫吠','吠叫','狗吠']},{c:'否',p:'fǒu',w:['是否','否则','否认']},{c:'吧',p:'ba',w:['酒吧','吧台','书吧']},{c:'吨',p:'dūn',w:['万吨','一吨','多吨']},{c:'吩',p:'fēn',w:['吩咐']},{c:'含',p:'hán',w:['包含','含有','含义']},{c:'听',p:'tīng',w:['听到','听说','听见']},{c:'吭',p:'kēng',w:['不吭','吭声','吭气']},{c:'吮',p:'shǔn',w:['吮吸']},{c:'启',p:'qǐ',w:['启动','开启','启发']},{c:'吱',p:'zhī',w:['吱呀','吱声','吱溜']},{c:'吴',p:'wú',w:['东吴','吴用','吴国']},{c:'吵',p:'chǎo',w:['吵架','争吵','吵闹']},{c:'吸',p:'xī',w:['吸引','吸收','呼吸']},{c:'吹',p:'chuī',w:['鼓吹','吹号','吹干']},{c:'吻',p:'wěn',w:['亲吻','接吻','吻合']},{c:'吼',p:'hǒu',w:['吼叫']},{c:'呀',p:'ya',w:['好呀','啊呀','天呀']},{c:'呆',p:'dāi',w:['呆人','书呆','呆住']},{c:'呈',p:'chéng',w:['呈现','呈请','进呈']},{c:'告',p:'gào',w:['报告','告诉','广告']},{c:'呐',p:'nà',w:['呐喊']},{c:'呕',p:'ǒu',w:['呕吐']},{c:'员',p:'yuán',w:['人员','成员','官员']},{c:'呛',p:'qiāng',w:['够呛']},{c:'呜',p:'wū',w:['呜呜','呜枪']},{c:'呢',p:'ne',w:['线呢','花呢','呢子']},{c:'周',p:'zhōu',w:['周年','周围','周末']},{c:'味',p:'wèi',w:['味道','口味','美味']},{c:'呵',p:'hē',w:['呵呵','呵护','呵令']},{c:'呻',p:'shēn',w:['呻吟']},{c:'呼',p:'hū',w:['呼吁','呼吸','称呼']},{c:'命',p:'mìng',w:['革命','生命','命令']},{c:'咆',p:'páo',w:['咆哮']},{c:'和',p:'hé',w:['中和','和平','和谐']},{c:'咏',p:'yǒng',w:['高咏','咏经','咏史']},{c:'咐',p:'fù',w:['吩咐','嘱咐']},{c:'咒',p:'zhòu',w:['诅咒','咒语']},{c:'咕',p:'gū',w:['咕咕']},{c:'咖',p:'kā',w:['咖啡','咖哩']},{c:'咙',p:'lóng',w:['喉咙']},{c:'咧',p:'liě',w:['咧着','咧开','咧嘴']},{c:'咨',p:'zī',w:['咨询']},{c:'咪',p:'mī',w:['妈咪','猫咪','咪咪']},{c:'咬',p:'yǎo',w:['咬点','小咬','反咬']},{c:'咱',p:'zán',w:['咱们','咱俩','咱家']},{c:'咳',p:'ké',w:['咳嗽']},{c:'咸',p:'xián',w:['咸阳','咸宁']},{c:'咽',p:'yàn',w:['咽喉']},{c:'哀',p:'āi',w:['哀悼','哀伤','哀求']},{c:'品',p:'pǐn',w:['产品','作品','食品']},{c:'哄',p:'hǒng',w:['起哄']},{c:'哆',p:'duō',w:['哆嗦']},{c:'哈',p:'hā',w:['哈哈','哈佛','哈尔']},{c:'响',p:'xiǎng',w:['影响','响应','反响']},{c:'哎',p:'āi',w:['哎呀','哎哟']},{c:'哑',p:'yǎ',w:['哑巴']},{c:'哗',p:'huā',w:['喧哗','哗然']},{c:'哟',p:'yō',w:['哎哟','啊哟','好哟']},{c:'哥',p:'gē',w:['哥哥','大哥','帅哥']},{c:'哨',p:'shào',w:['前哨','哨兵']},{c:'哩',p:'lī',w:['咖哩','英哩']},{c:'哪',p:'nǎ',w:['哪里','哪个','哪些']},{c:'哭',p:'kū',w:['哭泣','哭出','号哭']},{c:'哮',p:'xiāo',w:['咆哮','哮喘']},{c:'哲',p:'zhé',w:['哲学','哲理','哲人']},{c:'哺',p:'bǔ',w:['哺乳','哺育']},{c:'哼',p:'hēng',w:['哼出','哼哼','哼起']},{c:'唁',p:'yàn',w:['吊唁']},{c:'唆',p:'suō',w:['教唆']},{c:'唇',p:'chún',w:['嘴唇','唇膏','双唇']},{c:'唉',p:'āi',w:['唉呀']},{c:'唐',p:'táng',w:['唐代','荒唐','唐人']},{c:'唠',p:'láo',w:['唠叨']},{c:'唤',p:'huàn',w:['召唤','呼唤','唤醒']},{c:'唧',p:'jī',w:['唧唧']},{c:'唬',p:'hǔ',w:['吓唬']},{c:'售',p:'shòu',w:['销售','出售','零售']},{c:'唯',p:'wéi',w:['唯一','唯有','唯独']},{c:'唱',p:'chàng',w:['唱歌','演唱','唱片']},{c:'唾',p:'tuò',w:['唾液','唾弃']},{c:'啃',p:'kěn',w:['一啃','啃上','啃下']},{c:'啄',p:'zhuó',w:['啄木鸟']},{c:'商',p:'shāng',w:['商业','商品','商店']},{c:'啊',p:'a',w:['啊呀','啊哈','啊哟']},{c:'啡',p:'fēi',w:['咖啡','吗啡']},{c:'啤',p:'pí',w:['啤酒']},{c:'啥',p:'shá',w:['为啥','啥子','啥事']},{c:'啦',p:'la',w:['跑啦','算啦','忘啦']},{c:'啰',p:'luō',w:['啰嗦']},{c:'啸',p:'xiào',w:['海啸','呼啸']},{c:'啼',p:'tí',w:['哭啼','啼叫','啼哭']},{c:'喂',p:'wèi',w:['喂养','喂给','喂狗']},{c:'善',p:'shàn',w:['改善','完善','慈善']},{c:'喇',p:'lǎ',w:['喇叭']},{c:'喉',p:'hóu',w:['喉咙','喉舌','咽喉']},{c:'喊',p:'hǎn',w:['呐喊','大喊','呼喊']},{c:'喘',p:'chuǎn',w:['哮喘','喘息','喘气']},{c:'喜',p:'xǐ',w:['喜欢','喜爱','惊喜']},{c:'喝',p:'hē',w:['喝酒','喝到','喝茶']},{c:'喧',p:'xuān',w:['喧嚣','喧闹','喧哗']},{c:'喳',p:'zhā',w:['叽喳','吱喳','喳喳']},{c:'喷',p:'pēn',w:['喷射','喷发','喷泉']},{c:'喻',p:'yù',w:['比喻','隐喻']},{c:'嗅',p:'xiù',w:['嗅觉']},{c:'嗓',p:'sǎng',w:['嗓子','嗓音']},{c:'嗜',p:'shì',w:['嗜好']},{c:'嗡',p:'wēng',w:['嗡嗡']},{c:'嗤',p:'chī',w:['嗤笑','扑嗤','嗤池']},{c:'嗦',p:'suo',w:['啰嗦']},{c:'嗽',p:'sòu',w:['咳嗽']},{c:'嘀',p:'dí',w:['嘀咕','嘀嘀']},{c:'嘉',p:'jiā',w:['嘉宾','嘉靖','嘉兴']},{c:'嘱',p:'zhǔ',w:['遗嘱','嘱咐','叮嘱']},{c:'嘲',p:'cháo',w:['嘲笑','嘲讽','嘲弄']},{c:'嘴',p:'zuǐ',w:['嘴里','嘴巴','嘴唇']},{c:'嘶',p:'sī',w:['嘶叫','马嘶','嘶喊']},{c:'嘹',p:'liáo',w:['嘹亮']},{c:'嘿',p:'hēi',w:['嘿嘿']},{c:'器',p:'qì',w:['武器','机器','仪器']},{c:'噩',p:'è',w:['噩梦','噩耗']},{c:'噪',p:'zào',w:['噪音','噪声']},{c:'嚎',p:'háo',w:['哀嚎']},{c:'嚣',p:'xiāo',w:['喧嚣','嚣张','叫嚣']},{c:'嚷',p:'rǎng',w:['嚷嚷']},{c:'嚼',p:'jué',w:['大嚼','嚼制','干嚼']},{c:'囊',p:'náng',w:['胶囊','囊括','气囊']},{c:'囚',p:'qiú',w:['囚禁','囚徒','女囚']},{c:'四',p:'sì',w:['四个','四川','第四']},{c:'回',p:'huí',w:['回来','回到','回家']},{c:'因',p:'yīn',w:['因为','因此','原因']},{c:'团',p:'tuán',w:['集团','团体','团队']},{c:'囤',p:'dùn',w:['囤积']},{c:'园',p:'yuán',w:['公园','校园','花园']},{c:'困',p:'kùn',w:['困难','贫困','困境']},{c:'囱',p:'cōng',w:['烟囱']},{c:'围',p:'wéi',w:['范围','周围','围绕']},{c:'固',p:'gù',w:['固定','巩固','固然']},{c:'国',p:'guó',w:['中国','国家','美国']},{c:'图',p:'tú',w:['图片','地图','试图']},{c:'圃',p:'pǔ',w:['场圃','老圃','花圃']},{c:'圆',p:'yuán',w:['圆满','圆形','日圆']},{c:'圈',p:'quān',w:['一圈','圈子','三圈']},{c:'圣',p:'shèng',w:['圣经','神圣','圣人']},{c:'在',p:'zài',w:['现在','不在','存在']},{c:'地',p:'dì',w:['地区','地方','当地']},{c:'场',p:'chǎng',w:['市场','现场','机场']},{c:'圾',p:'jī',w:['垃圾']},{c:'址',p:'zhǐ',w:['网址','地址','遗址']},{c:'均',p:'jūn',w:['平均','人均','月均']},{c:'坊',p:'fāng',w:['街坊','作坊','牌坊']},{c:'坎',p:'kǎn',w:['坎坷','坎普']},{c:'坏',p:'huài',w:['破坏','坏人','坏事']},{c:'坐',p:'zuò',w:['坐在','坐下','坐标']},{c:'坑',p:'kēng',w:['大坑','小坑','马坑']},{c:'块',p:'kuài',w:['一块','这块','板块']},{c:'坚',p:'jiān',w:['坚持','坚决','坚强']},{c:'坛',p:'tán',w:['论坛','政坛','文坛']},{c:'坝',p:'bà',w:['大坝','水坝','堤坝']},{c:'坞',p:'wù',w:['船坞']},{c:'坟',p:'fén',w:['坟墓','祖坟','坟场']},{c:'坠',p:'zhuì',w:['坠毁','坠落','坠入']},{c:'坡',p:'pō',w:['山坡','东坡','滑坡']},{c:'坤',p:'kūn',w:['乾坤','干坤']},{c:'坦',p:'tǎn',w:['坦克','坦诚','坦白']},{c:'坪',p:'píng',w:['草坪','上坪','地坪']},{c:'坯',p:'pī',w:['土坯','坯子','坯布']},{c:'坷',p:'kě',w:['坎坷']},{c:'垂',p:'chuí',w:['垂直','下垂']},{c:'垃',p:'lā',w:['垃圾']},{c:'垄',p:'lǒng',w:['垄断']},{c:'型',p:'xíng',w:['大型','类型','模型']},{c:'垒',p:'lěi',w:['堡垒','壁垒','垒球']},{c:'垛',p:'duǒ',w:['垛口','垛子','城垛']},{c:'垢',p:'gòu',w:['污垢']},{c:'垦',p:'kěn',w:['开垦','农垦']},{c:'垫',p:'diàn',w:['床垫','铺垫','气垫']},{c:'垮',p:'kuǎ',w:['垮台','打垮','压垮']},{c:'埂',p:'gěng',w:['土埂','埂子','海埂']},{c:'埃',p:'āi',w:['埃及','尘埃','埃里']},{c:'埋',p:'mái',w:['埋葬','埋怨','埋伏']},{c:'城',p:'chéng',w:['城市','城镇','城乡']},{c:'域',p:'yù',w:['区域','领域','流域']},{c:'埠',p:'bù',w:['蚌埠']},{c:'培',p:'péi',w:['培训','培养','培育']},{c:'基',p:'jī',w:['基础','基本','基地']},{c:'堂',p:'táng',w:['教堂','天堂','课堂']},{c:'堆',p:'duī',w:['一堆','堆积','火堆']},{c:'堕',p:'duò',w:['堕落','堕胎','堕入']},{c:'堡',p:'bǎo',w:['城堡','汉堡','堡垒']},{c:'堤',p:'dī',w:['堤防','堤坝']},{c:'堪',p:'kān',w:['不堪','难堪','堪称']},{c:'堰',p:'yàn',w:['十堰']},{c:'堵',p:'dǔ',w:['堵塞','堵住','围堵']},{c:'塌',p:'tā',w:['倒塌','崩塌','塌陷']},{c:'塑',p:'sù',w:['塑料','塑造','雕塑']},{c:'塔',p:'tǎ',w:['灯塔','塔中','图塔']},{c:'塘',p:'táng',w:['池塘','塘沽','水塘']},{c:'塞',p:'sāi',w:['堵塞','活塞','塞车']},{c:'填',p:'tián',w:['填补','填写','填报']},{c:'境',p:'jìng',w:['环境','境内','边境']},{c:'墅',p:'shù',w:['别墅']},{c:'墓',p:'mù',w:['墓地','坟墓','陵墓']},{c:'墙',p:'qiáng',w:['墙上','城墙','墙壁']},{c:'增',p:'zēng',w:['增加','增长','增强']},{c:'墨',p:'mò',w:['墨水','墨镜','石墨']},{c:'墩',p:'dūn',w:['桥墩']},{c:'壁',p:'bì',w:['隔壁','墙壁','壁画']},{c:'壕',p:'háo',w:['战壕','壕沟']},{c:'壤',p:'rǎng',w:['土壤','平壤','接壤']},{c:'士',p:'shì',w:['人士','博士','士兵']},{c:'壮',p:'zhuàng',w:['壮大','壮观','强壮']},{c:'声',p:'shēng',w:['声音','声明','声称']},{c:'壳',p:'ké',w:['外壳','贝壳','地壳']},{c:'壶',p:'hú',w:['水壶','茶壶']},{c:'壹',p:'yī',w:['不壹','壹一','壹万']},{c:'处',p:'chù',w:['处理','处于','到处']},{c:'备',p:'bèi',w:['准备','设备','具备']},{c:'复',p:'fù',w:['恢复','复杂','重复']},{c:'夏',p:'xià',w:['夏天','夏季','宁夏']},{c:'夕',p:'xī',w:['前夕','夕阳','除夕']},{c:'外',p:'wài',w:['另外','此外','外国']},{c:'多',p:'duō',w:['许多','很多','多少']},{c:'夜',p:'yè',w:['一夜','夜晚','深夜']},{c:'够',p:'gòu',w:['能够','不够','足够']},{c:'大',p:'dà',w:['大学','大家','最大']},{c:'太',p:'tài',w:['太阳','太和','太空']},{c:'夫',p:'fū',w:['丈夫','夫人','夫妇']},{c:'夭',p:'yāo',w:['夭折']},{c:'央',p:'yāng',w:['中央','央视','央行']},{c:'夯',p:'hāng',w:['夯地','打夯','夯实']},{c:'失',p:'shī',w:['失去','失败','消失']},{c:'头',p:'tóu',w:['头发','街头','石头']},{c:'夷',p:'yí',w:['夏威夷','武夷山']},{c:'夸',p:'kuā',w:['夸张','夸大','夸奖']},{c:'夹',p:'jiā',w:['夹击','夹克','夹杂']},{c:'夺',p:'duó',w:['剥夺','争夺','夺取']},{c:'奄',p:'yǎn',w:['奄然','奄忽','奄奄']},{c:'奇',p:'qí',w:['奇怪','传奇','奇迹']},{c:'奈',p:'nài',w:['无奈','奈特','奈何']},{c:'奉',p:'fèng',w:['奉献','信奉','奉行']},{c:'奋',p:'fèn',w:['兴奋','奋斗','勤奋']},{c:'奏',p:'zòu',w:['节奏','演奏','伴奏']},{c:'契',p:'qì',w:['契约','契机','契丹']},{c:'奔',p:'bēn',w:['奔驰','奔跑','奔波']},{c:'奕',p:'yì',w:['黄奕','盖奕','博奕']},{c:'奖',p:'jiǎng',w:['奖励','奖金','大奖']},{c:'套',p:'tào',w:['一套','配套','套餐']},{c:'奠',p:'diàn',w:['奠定','奠基','祭奠']},{c:'奢',p:'shē',w:['奢侈','奢华','奢望']},{c:'奥',p:'ào',w:['奥运','奥秘','里奥']},{c:'女',p:'nǚ',w:['女人','女性','女儿']},{c:'奴',p:'nú',w:['奴隶','奴役','匈奴']},{c:'奶',p:'nǎi',w:['奶奶','牛奶','奶粉']},{c:'她',p:'tā',w:['她们','她家','她俩']},{c:'好',p:'hǎo',w:['最好','好像','不好']},{c:'如',p:'rú',w:['如果','如何','如此']},{c:'妄',p:'wàng',w:['妄想','妄图','狂妄']},{c:'妆',p:'zhuāng',w:['化妆','嫁妆','彩妆']},{c:'妇',p:'fù',w:['妇女','夫妇','媳妇']},{c:'妈',p:'mā',w:['妈妈','大妈','老妈']},{c:'妒',p:'dù',w:['嫉妒','妒忌','忌妒']},{c:'妖',p:'yāo',w:['妖精','妖怪','人妖']},{c:'妙',p:'miào',w:['奇妙','巧妙','美妙']},{c:'妥',p:'tuǒ',w:['妥协','妥善','妥当']},{c:'妨',p:'fáng',w:['妨碍','不妨','无妨']},{c:'妹',p:'mèi',w:['妹妹','妹子','姊妹']},{c:'妻',p:'qī',w:['妻子','夫妻','前妻']},{c:'姆',p:'mǔ',w:['汤姆','拉姆','保姆']},{c:'姊',p:'zǐ',w:['姊妹']},{c:'始',p:'shǐ',w:['开始','始终','原始']},{c:'姑',p:'gū',w:['姑娘','姑姑','姑妈']},{c:'姓',p:'xìng',w:['百姓','姓名','姓氏']},{c:'委',p:'wěi',w:['委员','委托','常委']},{c:'姚',p:'yáo',w:['姚明','余姚']},{c:'姜',p:'jiāng',w:['生姜']},{c:'姥',p:'lǎo',w:['姥姥']},{c:'姨',p:'yí',w:['阿姨','姨妈']},{c:'姻',p:'yīn',w:['婚姻','联姻','姻缘']},{c:'姿',p:'zī',w:['姿势','姿态']},{c:'威',p:'wēi',w:['威胁','权威','示威']},{c:'娃',p:'wá',w:['娃娃','夏娃','伊娃']},{c:'娄',p:'lóu',w:['娄子','娄山','娄底']},{c:'娇',p:'jiāo',w:['撒娇','娇小','娇妻']},{c:'娘',p:'niáng',w:['姑娘','新娘','娘娘']},{c:'娜',p:'nà',w:['安娜','娜娜','琳娜']},{c:'娩',p:'miǎn',w:['分娩']},{c:'娱',p:'yú',w:['娱乐','文娱']},{c:'娶',p:'qǔ',w:['再娶','未娶','强娶']},{c:'婆',p:'pó',w:['老婆','婆婆','外婆']},{c:'婉',p:'wǎn',w:['委婉','婉拒']},{c:'婚',p:'hūn',w:['结婚','婚姻','离婚']},{c:'婴',p:'yīng',w:['婴儿','女婴','男婴']},{c:'婶',p:'shěn',w:['婶婶','大婶','婶子']},{c:'婿',p:'xù',w:['女婿']},{c:'媒',p:'méi',w:['媒体','传媒','媒介']},{c:'媚',p:'mèi',w:['明媚']},{c:'媳',p:'xí',w:['媳妇','儿媳']},{c:'嫁',p:'jià',w:['嫁给','出嫁','嫁妆']},{c:'嫂',p:'sǎo',w:['嫂子','大嫂']},{c:'嫉',p:'jí',w:['嫉妒']},{c:'嫌',p:'xián',w:['涉嫌','嫌疑','嫌弃']},{c:'嫡',p:'dí',w:['嫡出','嫡子','嫡派']},{c:'嫩',p:'nèn',w:['粉嫩','太嫩','娇嫩']},{c:'嬉',p:'xī',w:['嬉戏']},{c:'子',p:'zi',w:['孩子','儿子','电子']},{c:'孔',p:'kǒng',w:['孔子','面孔','脸孔']},{c:'孕',p:'yùn',w:['怀孕','孕妇','孕育']},{c:'字',p:'zì',w:['名字','数字','文字']},{c:'存',p:'cún',w:['存在','生存','保存']},{c:'孙',p:'sūn',w:['孙子','子孙','孙女']},{c:'孝',p:'xiào',w:['孝顺','孝子','孝感']},{c:'孟',p:'mèng',w:['孟买','孟子']},{c:'季',p:'jì',w:['赛季','季节','冬季']},{c:'孤',p:'gū',w:['孤独','孤立','孤儿']},{c:'学',p:'xué',w:['学生','大学','学校']},{c:'孩',p:'hái',w:['孩子','女孩','小孩']},{c:'孵',p:'fū',w:['孵化']},{c:'孽',p:'niè',w:['作孽','孽种','孽子']},{c:'宁',p:'níng',w:['辽宁','宁愿','宁波']},{c:'它',p:'tā',w:['它们','其它','那它']},{c:'宅',p:'zhái',w:['住宅','豪宅','民宅']},{c:'宇',p:'yǔ',w:['宇宙','庙宇','楼宇']},{c:'守',p:'shǒu',w:['遵守','保守','守护']},{c:'安',p:'ān',w:['安全','安排','安装']},{c:'宋',p:'sòng',w:['宋代','北宋','南宋']},{c:'完',p:'wán',w:['完全','完成','完美']},{c:'宏',p:'hóng',w:['宏观','宏伟','宏大']},{c:'宗',p:'zōng',w:['宗教','宗旨','大宗']},{c:'官',p:'guān',w:['官方','官员','法官']},{c:'宙',p:'zhòu',w:['宇宙','宙斯']},{c:'定',p:'dìng',w:['决定','一定','规定']},{c:'宛',p:'wǎn',w:['宛如']},{c:'宜',p:'yí',w:['便宜','适宜','事宜']},{c:'宝',p:'bǎo',w:['宝宝','宝贝','宝贵']},{c:'实',p:'shí',w:['其实','实现','实施']},{c:'宠',p:'chǒng',w:['宠物','宠爱','宠坏']},{c:'审',p:'shěn',w:['审查','审判','审议']},{c:'客',p:'kè',w:['客户','游客','博客']},{c:'宣',p:'xuān',w:['宣布','宣传','宣言']},{c:'室',p:'shì',w:['教室','室内','浴室']},{c:'宦',p:'huàn',w:['宦官']},{c:'宪',p:'xiàn',w:['宪法','宪章','宪政']},{c:'宫',p:'gōng',w:['白宫','子宫','宫殿']},{c:'宰',p:'zǎi',w:['主宰','宰相','屠宰']},{c:'害',p:'hài',w:['伤害','害怕','厉害']},{c:'宴',p:'yàn',w:['宴会','晚宴','盛宴']},{c:'宵',p:'xiāo',w:['通宵','宵禁','元宵']},{c:'家',p:'jiā',w:['国家','大家','家庭']},{c:'容',p:'róng',w:['内容','容易','形容']},{c:'宽',p:'kuān',w:['宽容','宽松','放宽']},{c:'宾',p:'bīn',w:['宾馆','嘉宾','来宾']},{c:'宿',p:'sù',w:['宿舍','住宿','寄宿']},{c:'寂',p:'jì',w:['寂寞','寂静','沉寂']},{c:'寄',p:'jì',w:['寄托','寄宿','寄生']},{c:'密',p:'mì',w:['秘密','密码','密切']},{c:'寇',p:'kòu',w:['外寇','日寇','入寇']},{c:'富',p:'fù',w:['财富','富有','富裕']},{c:'寒',p:'hán',w:['寒冷','寒冬','严寒']},{c:'寓',p:'yù',w:['公寓','寓意','寓言']},{c:'寝',p:'qǐn',w:['寝室','陵寝']},{c:'寞',p:'mò',w:['寂寞']},{c:'察',p:'chá',w:['警察','观察','考察']},{c:'寡',p:'guǎ',w:['寡妇','寡头','多寡']},{c:'寥',p:'liáo',w:['寥寥']},{c:'寨',p:'zhài',w:['山寨']},{c:'寸',p:'cùn',w:['尺寸','英寸','一寸']},{c:'对',p:'duì',w:['对于','对了','不对']},{c:'寺',p:'sì',w:['寺庙','寺院','大寺']},{c:'寻',p:'xún',w:['寻找','寻求','寻常']},{c:'导',p:'dǎo',w:['领导','导致','指导']},{c:'寿',p:'shòu',w:['寿命','长寿','人寿']},{c:'封',p:'fēng',w:['封锁','封闭','封建']},{c:'射',p:'shè',w:['发射','辐射','射击']},{c:'将',p:'jiāng',w:['即将','将军','将才']},{c:'尉',p:'wèi',w:['上尉','中尉','少尉']},{c:'尊',p:'zūn',w:['尊重','尊严','尊敬']},{c:'小',p:'xiǎo',w:['小时','小说','小学']},{c:'少',p:'shǎo',w:['多少','减少','至少']},{c:'尔',p:'ěr',w:['偶尔','卡尔','贝尔']},{c:'尖',p:'jiān',w:['尖锐','顶尖','尖叫']},{c:'尘',p:'chén',w:['灰尘','尘埃','尘土']},{c:'尚',p:'shàng',w:['尚未','时尚','和尚']},{c:'尝',p:'cháng',w:['尝试','品尝','尝尝']},{c:'尤',p:'yóu',w:['尤其','尤为','尤里']},{c:'就',p:'jiù',w:['就是','就业','就要']},{c:'尺',p:'chǐ',w:['尺寸','尺度','公尺']},{c:'尼',p:'ní',w:['印尼','尼亚','索尼']},{c:'尽',p:'jǐn',w:['尽管','尽快','尽量']},{c:'尾',p:'wěi',w:['尾巴','结尾','尾声']},{c:'尿',p:'niào',w:['撒尿','尿液','便尿']},{c:'局',p:'jú',w:['当局','局长','布局']},{c:'屁',p:'pì',w:['屁股','屁眼','狗屁']},{c:'层',p:'céng',w:['基层','层面','高层']},{c:'居',p:'jū',w:['居民','居住','居然']},{c:'屈',p:'qū',w:['屈服','委屈','屈辱']},{c:'屉',p:'tì',w:['抽屉']},{c:'届',p:'jiè',w:['本届','首届','届时']},{c:'屋',p:'wū',w:['房屋','屋顶','屋子']},{c:'屎',p:'shǐ',w:['拉屎','狗屎','吃屎']},{c:'屏',p:'píng',w:['屏幕','屏蔽','屏障']},{c:'屑',p:'xiè',w:['不屑','碎屑']},{c:'展',p:'zhǎn',w:['发展','开展','展开']},{c:'属',p:'shǔ',w:['属于','金属','所属']},{c:'屠',p:'tú',w:['屠夫','屠宰','屠龙']},{c:'屡',p:'lǚ',w:['屡屡','屡次']},{c:'履',p:'lǚ',w:['履行','履历','履带']},{c:'屯',p:'tún',w:['屯子','屯田']},{c:'屹',p:'yì',w:['屹立']},{c:'屿',p:'yǔ',w:['岛屿','兰屿']},{c:'岁',p:'suì',w:['年岁','万岁','岁月']},{c:'岂',p:'qǐ',w:['岂能','岂但','岂可']},{c:'岔',p:'chà',w:['三岔','出岔','分岔']},{c:'岖',p:'qū',w:['崎岖']},{c:'岗',p:'gǎng',w:['岗位','下岗','上岗']},{c:'岛',p:'dǎo',w:['岛屿','青岛','岛上']},{c:'岩',p:'yán',w:['岩石','岩浆','熔岩']},{c:'岭',p:'lǐng',w:['岭南','岭上','岭下']},{c:'岳',p:'yuè',w:['岳父','南岳','岳母']},{c:'岸',p:'àn',w:['两岸','海岸','沿岸']},{c:'峡',p:'xiá',w:['海峡','峡谷','三峡']},{c:'峦',p:'luán',w:['万峦','层峦','山峦']},{c:'峭',p:'qiào',w:['陡峭','峭壁']},{c:'峰',p:'fēng',w:['高峰','峰会','山峰']},{c:'峻',p:'jùn',w:['严峻','险峻']},{c:'崇',p:'chóng',w:['崇拜','推崇','崇高']},{c:'崎',p:'qí',w:['长崎','崎岖','山崎']},{c:'崔',p:'cuī',w:['崔鸿','崔健']},{c:'崖',p:'yá',w:['悬崖']},{c:'崩',p:'bēng',w:['崩溃','崩塌','崩坏']},{c:'崭',p:'zhǎn',w:['崭新']},{c:'嵌',p:'qiàn',w:['嵌入','镶嵌']},{c:'巍',p:'wēi',w:['巍山','巍然','崔巍']},{c:'川',p:'chuān',w:['四川','冰川','银川']},{c:'州',p:'zhōu',w:['广州','杭州','苏州']},{c:'巡',p:'xún',w:['巡逻','巡抚','巡视']},{c:'巢',p:'cháo',w:['巢穴','卵巢','鸟巢']},{c:'工',p:'gōng',w:['工作','工业','工程']},{c:'左',p:'zuǒ',w:['左右','左派','左翼']},{c:'巧',p:'qiǎo',w:['技巧','巧合','巧妙']},{c:'巨',p:'jù',w:['巨大','巨人','巨额']},{c:'巩',p:'gǒng',w:['巩固']},{c:'巫',p:'wū',w:['巫师','女巫','巫术']},{c:'差',p:'chà',w:['差异','差别','差距']},{c:'己',p:'jǐ',w:['自己','知己','一己']},{c:'已',p:'yǐ',w:['已经','而已','已是']},{c:'巴',p:'bā',w:['巴黎','巴西','巴士']},{c:'巷',p:'xiàng',w:['小巷','巷子','街巷']},{c:'巾',p:'jīn',w:['毛巾','头巾','围巾']},{c:'币',p:'bì',w:['货币','硬币','金币']},{c:'市',p:'shì',w:['城市','市场','市长']},{c:'布',p:'bù',w:['发布','宣布','公布']},{c:'帅',p:'shuài',w:['帅哥','元帅','统帅']},{c:'帆',p:'fān',w:['帆船','帆布','扬帆']},{c:'师',p:'shī',w:['老师','教师','律师']},{c:'希',p:'xī',w:['希望','希腊','希尔']},{c:'帐',p:'zhàng',w:['帐号','帐户','帐篷']},{c:'帕',p:'pà',w:['帕拉','手帕','帕特']},{c:'帖',p:'tiē',w:['帖子','发帖']},{c:'帘',p:'lián',w:['窗帘']},{c:'帚',p:'zhǒu',w:['扫帚']},{c:'帜',p:'zhì',w:['旗帜']},{c:'帝',p:'dì',w:['帝国','上帝','皇帝']},{c:'带',p:'dài',w:['带来','一带','带领']},{c:'席',p:'xí',w:['主席','出席','首席']},{c:'帮',p:'bāng',w:['帮助','帮忙','马帮']},{c:'常',p:'cháng',w:['非常','经常','正常']},{c:'帽',p:'mào',w:['帽子','草帽']},{c:'幅',p:'fú',w:['大幅','一幅','幅度']},{c:'幌',p:'huǎng',w:['幌子']},{c:'幔',p:'màn',w:['中幔','地幔','帐幔']},{c:'幕',p:'mù',w:['开幕','幕后','字幕']},{c:'幢',p:'chuáng',w:['一幢']},{c:'干',p:'gàn',w:['干部','干净','若干']},{c:'平',p:'píng',w:['平台','和平','水平']},{c:'年',p:'nián',w:['年代','上年','今年']},{c:'并',p:'bìng',w:['并且','并非','合并']},{c:'幸',p:'xìng',w:['幸福','幸运','不幸']},{c:'幻',p:'huàn',w:['幻想','梦幻','幻觉']},{c:'幼',p:'yòu',w:['幼稚','幼儿','幼女']},{c:'幽',p:'yōu',w:['幽默','幽灵']},{c:'广',p:'guǎng',w:['广告','广场','广州']},{c:'庄',p:'zhuāng',w:['村庄','庄园','庄严']},{c:'庆',p:'qìng',w:['重庆','庆祝','庆典']},{c:'庇',p:'bì',w:['庇护','包庇']},{c:'床',p:'chuáng',w:['床上','临床','起床']},{c:'序',p:'xù',w:['程序','秩序','顺序']},{c:'庐',p:'lú',w:['庐山','庐江']},{c:'库',p:'kù',w:['仓库','库存','水库']},{c:'应',p:'yīng',w:['应该','应用','反应']},{c:'底',p:'dǐ',w:['到底','彻底','年底']},{c:'店',p:'diàn',w:['酒店','商店','饭店']},{c:'庙',p:'miào',w:['寺庙','神庙','庙宇']},{c:'府',p:'fǔ',w:['政府','首府','府上']},{c:'庞',p:'páng',w:['庞大','脸庞','庞德']},{c:'废',p:'fèi',w:['废除','废物','废弃']},{c:'度',p:'dù',w:['制度','印度','程度']},{c:'座',p:'zuò',w:['一座','座位','讲座']},{c:'庭',p:'tíng',w:['家庭','法庭','开庭']},{c:'庵',p:'ān',w:['庵主','庵儿','尼庵']},{c:'庶',p:'shù',w:['庶民','富庶']},{c:'康',p:'kāng',w:['健康','康熙','康复']},{c:'庸',p:'yōng',w:['平庸','金庸','庸俗']},{c:'廉',p:'lián',w:['威廉','廉价','低廉']},{c:'廊',p:'láng',w:['走廊','画廊','廊坊']},{c:'廓',p:'kuò',w:['轮廓']},{c:'延',p:'yán',w:['延长','延伸','延续']},{c:'廷',p:'tíng',w:['朝廷','宫廷','清廷']},{c:'建',p:'jiàn',w:['建设','建立','建筑']},{c:'开',p:'kāi',w:['开始','开发','离开']},{c:'异',p:'yì',w:['差异','异常','异议']},{c:'弃',p:'qì',w:['放弃','抛弃','废弃']},{c:'弄',p:'nòng',w:['玩弄','里弄','三弄']},{c:'弊',p:'bì',w:['作弊','舞弊','弊端']},{c:'式',p:'shì',w:['方式','正式','模式']},{c:'引',p:'yǐn',w:['引起','吸引','引发']},{c:'弛',p:'chí',w:['松弛']},{c:'弟',p:'dì',w:['兄弟','弟弟','弟子']},{c:'张',p:'zhāng',w:['主张','一张','紧张']},{c:'弥',p:'mí',w:['弥补','弥漫','弥撒']},{c:'弦',p:'xián',w:['和弦','琴弦']},{c:'弧',p:'hú',w:['弧形']},{c:'弯',p:'wān',w:['弯曲','转弯','弯腰']},{c:'弱',p:'ruò',w:['脆弱','削弱','弱点']},{c:'弹',p:'dàn',w:['炸弹','导弹','子弹']},{c:'强',p:'qiáng',w:['加强','强调','强烈']},{c:'归',p:'guī',w:['回归','归属','归来']},{c:'当',p:'dāng',w:['当时','当然','当地']},{c:'录',p:'lù',w:['记录','纪录','目录']},{c:'形',p:'xíng',w:['形成','形式','形象']},{c:'彤',p:'tóng',w:['彤云','朱彤']},{c:'彩',p:'cǎi',w:['色彩','精彩','彩色']},{c:'彪',p:'biāo',w:['林彪']},{c:'彬',p:'bīn',w:['元彬','彬县','华彬']},{c:'彭',p:'péng',w:['彭真']},{c:'彰',p:'zhāng',w:['表彰','彰显','彰化']},{c:'影',p:'yǐng',w:['影响','电影','影片']},{c:'役',p:'yì',w:['战役','服役','退役']},{c:'彻',p:'chè',w:['彻底','贯彻','透彻']},{c:'彼',p:'bǐ',w:['彼此','彼得','彼岸']},{c:'往',p:'wǎng',w:['前往','往往','以往']},{c:'征',p:'zhēng',w:['特征','象征','征服']},{c:'径',p:'jìng',w:['途径','直径','路径']},{c:'待',p:'dài',w:['等待','对待','期待']},{c:'很',p:'hěn',w:['很多','很大','很快']},{c:'徊',p:'huái',w:['徘徊']},{c:'律',p:'lǜ',w:['法律','规律','律师']},{c:'徐',p:'xú',w:['徐州','徐家','徐徐']},{c:'徒',p:'tú',w:['信徒','教徒','徒刑']},{c:'得',p:'dé',w:['觉得','获得','得到']},{c:'徘',p:'pái',w:['徘徊']},{c:'徙',p:'xǐ',w:['迁徙']},{c:'御',p:'yù',w:['防御','抵御','御史']},{c:'循',p:'xún',w:['循环','遵循','可循']},{c:'微',p:'wēi',w:['微软','微笑','稍微']},{c:'德',p:'dé',w:['德国','道德','德里']},{c:'徽',p:'huī',w:['安徽','徽章','国徽']},{c:'必',p:'bì',w:['必须','必要','必然']},{c:'忆',p:'yì',w:['记忆','回忆','失忆']},{c:'忌',p:'jì',w:['禁忌','妒忌','忌讳']},{c:'忍',p:'rěn',w:['残忍','忍受','容忍']},{c:'志',p:'zhì',w:['同志','杂志','标志']},{c:'忘',p:'wàng',w:['忘记','遗忘','难忘']},{c:'忙',p:'máng',w:['帮忙','忙碌','大忙']},{c:'忠',p:'zhōng',w:['忠诚','忠实','忠于']},{c:'忧',p:'yōu',w:['担忧','忧虑','忧郁']},{c:'快',p:'kuài',w:['快乐','快速','很快']},{c:'忱',p:'chén',w:['热忱']},{c:'念',p:'niàn',w:['概念','纪念','观念']},{c:'忽',p:'hū',w:['忽视','忽略','忽然']},{c:'忿',p:'fèn',w:['不忿','忿争','忿然']},{c:'怀',p:'huái',w:['怀疑','怀孕','关怀']},{c:'态',p:'tài',w:['状态','态度','生态']},{c:'怎',p:'zěn',w:['怎么','怎样','怎会']},{c:'怒',p:'nù',w:['愤怒','激怒','怒火']},{c:'怔',p:'zhēng',w:['发怔','怔住','怔怔']},{c:'怕',p:'pà',w:['害怕','可怕','恐怕']},{c:'怖',p:'bù',w:['恐怖']},{c:'怜',p:'lián',w:['可怜','怜悯']},{c:'思',p:'sī',w:['意思','思想','思考']},{c:'怠',p:'dài',w:['懈怠']},{c:'急',p:'jí',w:['紧急','应急','急剧']},{c:'性',p:'xìng',w:['女性','男性','性质']},{c:'怨',p:'yuàn',w:['抱怨','埋怨','恩怨']},{c:'怪',p:'guài',w:['奇怪','怪物','难怪']},{c:'怯',p:'qiè',w:['胆怯','怯懦']},{c:'总',p:'zǒng',w:['总统','总是','总理']},{c:'恃',p:'shì',w:['自恃','依恃','凭恃']},{c:'恋',p:'liàn',w:['恋爱','恋人','迷恋']},{c:'恍',p:'huǎng',w:['恍如','恍若','恍然']},{c:'恐',p:'kǒng',w:['恐怖','恐惧','恐怕']},{c:'恒',p:'héng',w:['永恒','恒星','恒定']},{c:'恕',p:'shù',w:['宽恕','饶恕']},{c:'恢',p:'huī',w:['恢复']},{c:'恤',p:'xù',w:['抚恤']},{c:'恨',p:'hèn',w:['仇恨','憎恨','痛恨']},{c:'恩',p:'ēn',w:['感恩','开恩','恩典']},{c:'恬',p:'tián',w:['安恬','恬和','恬然']},{c:'恭',p:'gōng',w:['恭喜','恭敬','恭贺']},{c:'息',p:'xī',w:['信息','消息','休息']},{c:'恰',p:'qià',w:['恰当','恰好','恰恰']},{c:'恳',p:'kěn',w:['恳求','诚恳','恳请']},{c:'恶',p:'è',w:['邪恶','恶心','恶化']},{c:'恼',p:'nǎo',w:['烦恼','苦恼','恼火']},{c:'悄',p:'qiāo',w:['悄悄','悄然']},{c:'悉',p:'xī',w:['熟悉','据悉','获悉']},{c:'悍',p:'hàn',w:['强悍']},{c:'悔',p:'huǐ',w:['后悔','懊悔','反悔']},{c:'悟',p:'wù',w:['觉悟','领悟','感悟']},{c:'悠',p:'yōu',w:['悠久','悠闲','忽悠']},{c:'患',p:'huàn',w:['患者','隐患','患有']},{c:'悦',p:'yuè',w:['喜悦','愉悦','取悦']},{c:'您',p:'nín',w:['您们','您老','您提']},{c:'悬',p:'xuán',w:['悬挂','悬崖','悬殊']},{c:'悯',p:'mǐn',w:['怜悯']},{c:'悲',p:'bēi',w:['悲剧','悲伤','悲惨']},{c:'悴',p:'cuì',w:['憔悴']},{c:'悼',p:'dào',w:['悼念','哀悼','追悼']},{c:'情',p:'qíng',w:['情况','事情','情绪']},{c:'惊',p:'jīng',w:['惊人','惊讶','惊喜']},{c:'惋',p:'wǎn',w:['惋惜']},{c:'惑',p:'huò',w:['诱惑','困惑','疑惑']},{c:'惕',p:'tì',w:['警惕']},{c:'惜',p:'xī',w:['可惜','珍惜','不惜']},{c:'惠',p:'huì',w:['优惠','惠州','实惠']},{c:'惦',p:'diàn',w:['惦记']},{c:'惧',p:'jù',w:['恐惧','畏惧','惧怕']},{c:'惨',p:'cǎn',w:['悲惨','惨案','惨重']},{c:'惩',p:'chéng',w:['惩罚','惩处','严惩']},{c:'惫',p:'bèi',w:['疲惫']},{c:'惭',p:'cán',w:['惭愧']},{c:'惯',p:'guàn',w:['习惯','惯例','惯性']},{c:'惰',p:'duò',w:['懒惰','惰性']},{c:'想',p:'xiǎng',w:['想要','思想','不想']},{c:'惶',p:'huáng',w:['仓惶','惊惶','惶急']},{c:'惹',p:'rě',w:['惹来','好惹','惹下']},{c:'愁',p:'chóu',w:['忧愁','发愁','乡愁']},{c:'愈',p:'yù',w:['治愈','痊愈','愈加']},{c:'愉',p:'yú',w:['愉快','愉悦','欢愉']},{c:'意',p:'yì',w:['注意','意见','意思']},{c:'愕',p:'è',w:['惊愕']},{c:'愚',p:'yú',w:['愚蠢','愚昧','愚弄']},{c:'感',p:'gǎn',w:['感觉','感到','感谢']},{c:'愤',p:'fèn',w:['愤慨','气愤','激愤']},{c:'愧',p:'kuì',w:['惭愧','羞愧','不愧']},{c:'愿',p:'yuàn',w:['愿意','愿望','自愿']},{c:'慈',p:'cí',w:['慈善','仁慈','慈爱']},{c:'慌',p:'huāng',w:['恐慌','惊慌','慌乱']},{c:'慎',p:'shèn',w:['谨慎','慎重','审慎']},{c:'慕',p:'mù',w:['羡慕','爱慕','慕容']},{c:'慢',p:'màn',w:['慢慢','缓慢','慢性']},{c:'慧',p:'huì',w:['智慧','聪慧']},{c:'慨',p:'kǎi',w:['慷慨','愤慨','感慨']},{c:'慰',p:'wèi',w:['安慰','自慰','慰问']},{c:'慷',p:'kāng',w:['慷慨']},{c:'憋',p:'biē',w:['憋着','憋住','憋气']},{c:'憎',p:'zēng',w:['憎恶']},{c:'憔',p:'qiáo',w:['憔悴']},{c:'憨',p:'hān',w:['憨子','憨实','憨笑']},{c:'憾',p:'hàn',w:['遗憾','缺憾']},{c:'懂',p:'dǒng',w:['懂得','懂行','学懂']},{c:'懈',p:'xiè',w:['不懈','懈怠','松懈']},{c:'懊',p:'ào',w:['懊悔','懊恼']},{c:'懒',p:'lǎn',w:['懒得','懒惰','懒散']},{c:'懦',p:'nuò',w:['懦弱','懦夫','怯懦']},{c:'戈',p:'gē',w:['戈壁','戈尔','探戈']},{c:'戏',p:'xì',w:['游戏','戏剧','戏曲']},{c:'成',p:'chéng',w:['成为','完成','成功']},{c:'我',p:'wǒ',w:['我们','我国','我会']},{c:'戒',p:'jiè',w:['警戒','戒指','戒严']},{c:'或',p:'huò',w:['或者','或有','或许']},{c:'战',p:'zhàn',w:['战争','战略','战斗']},{c:'戚',p:'qī',w:['亲戚']},{c:'截',p:'jié',w:['截至','截图','截止']},{c:'戳',p:'chuō',w:['戳破','日戳','打戳']},{c:'戴',p:'dài',w:['戴尔','穿戴','佩戴']},{c:'户',p:'hù',w:['用户','客户','账户']},{c:'房',p:'fáng',w:['房子','房间','房屋']},{c:'所',p:'suǒ',w:['所以','所有','所谓']},{c:'扁',p:'biǎn',w:['扁平','压扁']},{c:'扇',p:'shàn',w:['风扇','一扇','扇子']},{c:'才',p:'cái',w:['才能','人才','刚才']},{c:'扎',p:'zhā',w:['挣扎','扎实','驻扎']},{c:'扑',p:'pū',w:['扑克','扑灭','相扑']},{c:'扒',p:'bā',w:['扒开']},{c:'打',p:'dǎ',w:['打开','打击','打算']},{c:'扔',p:'rēng',w:['扔掉','扔到','扔来']},{c:'托',p:'tuō',w:['委托','拜托','依托']},{c:'扛',p:'káng',w:['扛下','扛出','扛去']},{c:'扣',p:'kòu',w:['扣押','折扣','扣留']},{c:'执',p:'zhí',w:['执行','执政','执法']},{c:'扩',p:'kuò',w:['扩大','扩展','扩张']},{c:'扫',p:'sǎo',w:['扫描','打扫','横扫']},{c:'扬',p:'yáng',w:['宣扬','赞扬','扬州']},{c:'扭',p:'niǔ',w:['扭曲','扭转','别扭']},{c:'扮',p:'bàn',w:['扮演','打扮','装扮']},{c:'扯',p:'chě',w:['牵扯','胡扯','扯淡']},{c:'扰',p:'rǎo',w:['干扰','骚扰','困扰']},{c:'扳',p:'bān',w:['扳机']},{c:'扶',p:'fú',w:['扶贫','扶持','扶植']},{c:'批',p:'pī',w:['批评','批准','批判']},{c:'扼',p:'è',w:['扼住','扼制','扼紧']},{c:'找',p:'zhǎo',w:['找到','寻找','好找']},{c:'承',p:'chéng',w:['承认','承诺','承担']},{c:'技',p:'jì',w:['技术','科技','技能']},{c:'抄',p:'chāo',w:['抄袭','抄家','抄录']},{c:'把',p:'bǎ',w:['三把','一把','万把']},{c:'抑',p:'yì',w:['抑制','压抑','抑郁']},{c:'抒',p:'shū',w:['抒情','抒发']},{c:'抓',p:'zhuā',w:['抓住','抓紧','抓上']},{c:'投',p:'tóu',w:['投资','投入','投票']},{c:'抖',p:'dǒu',w:['发抖','颤抖','抖动']},{c:'抗',p:'kàng',w:['抗议','对抗','反抗']},{c:'折',p:'zhé',w:['折磨','挫折','折腾']},{c:'抚',p:'fǔ',w:['安抚','抚养','巡抚']},{c:'抛',p:'pāo',w:['抛弃','抛开','抛出']},{c:'抠',p:'kōu',w:['太抠','抠出','抠到']},{c:'抢',p:'qiǎng',w:['抢劫','抢救','抢下']},{c:'护',p:'hù',w:['保护','维护','护士']},{c:'报',p:'bào',w:['报告','报道','报纸']},{c:'披',p:'pī',w:['披露','披上','披肩']},{c:'抬',p:'tái',w:['抬头','抬起','抬高']},{c:'抱',p:'bào',w:['抱怨','抱歉','拥抱']},{c:'抵',p:'dǐ',w:['抵达','抵制','抵抗']},{c:'抹',p:'mǒ',w:['抹黑','涂抹','多抹']},{c:'押',p:'yā',w:['关押','抵押','扣押']},{c:'抽',p:'chōu',w:['抽烟','抽象','抽出']},{c:'拂',p:'fú',w:['拂动','拂去','拂子']},{c:'拄',p:'zhǔ',w:['拄着','拄稳','拄杖']},{c:'担',p:'dān',w:['担心','担任','承担']},{c:'拆',p:'chāi',w:['拆除','拆迁','拆解']},{c:'拇',p:'mǔ',w:['拇指']},{c:'拉',p:'lā',w:['卡拉','阿拉','拉萨']},{c:'拌',p:'bàn',w:['搅拌']},{c:'拍',p:'pāi',w:['拍摄','拍照','拍卖']},{c:'拐',p:'guǎi',w:['拐杖','诱拐','拐卖']},{c:'拒',p:'jù',w:['拒绝','抗拒','拒不']},{c:'拓',p:'tuò',w:['拓展','开拓','拓宽']},{c:'拔',p:'bá',w:['海拔','选拔','提拔']},{c:'拖',p:'tuō',w:['拖延','拖鞋','拖欠']},{c:'拗',p:'ǎo',w:['别拗','山拗','拗体']},{c:'拘',p:'jū',w:['拘留','拘捕','拘束']},{c:'拙',p:'zhuō',w:['笨拙','拙劣']},{c:'招',p:'zhāo',w:['招生','招聘','招标']},{c:'拜',p:'bài',w:['崇拜','礼拜','拜托']},{c:'拟',p:'nǐ',w:['模拟','虚拟','拟定']},{c:'拢',p:'lǒng',w:['靠拢','拉拢']},{c:'拣',p:'jiǎn',w:['分拣','拣出','拣到']},{c:'拥',p:'yōng',w:['拥有','拥抱','拥护']},{c:'拦',p:'lán',w:['拦截','拦住','阻拦']},{c:'拧',p:'níng',w:['拧上','拧下','拧开']},{c:'拨',p:'bō',w:['拨款','拨打','挑拨']},{c:'择',p:'zé',w:['选择','择优','择业']},{c:'括',p:'kuò',w:['包括','概括','囊括']},{c:'拭',p:'shì',w:['擦拭']},{c:'拯',p:'zhěng',w:['拯救']},{c:'拱',p:'gǒng',w:['拱门','拱手']},{c:'拳',p:'quán',w:['拳头','拳击','一拳']},{c:'拴',p:'shuān',w:['拴上','拴住','拴着']},{c:'拷',p:'kǎo',w:['拷问','拷贝','拷打']},{c:'拼',p:'pīn',w:['拼命','拼音','拼搏']},{c:'拾',p:'shí',w:['收拾','重拾']},{c:'拿',p:'ná',w:['拿到','拿出','大拿']},{c:'持',p:'chí',w:['支持','坚持','持续']},{c:'挂',p:'guà',w:['挂牌','悬挂','挂到']},{c:'指',p:'zhǐ',w:['指出','指导','指挥']},{c:'按',p:'àn',w:['按照','按着','按摩']},{c:'挎',p:'kuà',w:['挎包','挎斗','挎枪']},{c:'挑',p:'tiāo',w:['挑战','挑选','挑衅']},{c:'挖',p:'wā',w:['挖掘','挖出','挖到']},{c:'挚',p:'zhì',w:['诚挚','挚爱','挚友']},{c:'挟',p:'xié',w:['挟持','要挟']},{c:'挠',p:'náo',w:['阻挠']},{c:'挡',p:'dǎng',w:['阻挡','挡住','抵挡']},{c:'挣',p:'zhēng',w:['挣扎','挣钱','挣脱']},{c:'挤',p:'jǐ',w:['拥挤','排挤','挤压']},{c:'挥',p:'huī',w:['发挥','指挥','挥舞']},{c:'挨',p:'āi',w:['挨打','挨饿','挨着']},{c:'挪',p:'nuó',w:['挪威','挪用']},{c:'挫',p:'cuò',w:['挫折','挫败','受挫']},{c:'振',p:'zhèn',w:['振兴','振动','振奋']},{c:'挺',p:'tǐng',w:['挺起','挺住','挺进']},{c:'挽',p:'wǎn',w:['挽救','挽回','挽留']},{c:'捂',p:'wǔ',w:['捂住']},{c:'捅',p:'tǒng',w:['捅出','捅进','捅穿']},{c:'捆',p:'kǔn',w:['捆绑']},{c:'捉',p:'zhuō',w:['捕捉','活捉','捉住']},{c:'捍',p:'hàn',w:['捍卫']},{c:'捎',p:'shāo',w:['捎去','捎带','捎来']},{c:'捏',p:'niē',w:['捏造','拿捏','捏成']},{c:'捐',p:'juān',w:['捐款','捐赠','捐助']},{c:'捕',p:'bǔ',w:['逮捕','被捕','捕鱼']},{c:'捞',p:'lāo',w:['捕捞','打捞','捞去']},{c:'损',p:'sǔn',w:['损失','损害','亏损']},{c:'捡',p:'jiǎn',w:['捡来','再捡','捡去']},{c:'换',p:'huàn',w:['交换','转换','更换']},{c:'捣',p:'dǎo',w:['捣乱','捣毁','捣蛋']},{c:'捧',p:'pěng',w:['追捧','吹捧','捧场']},{c:'据',p:'jù',w:['根据','数据','依据']},{c:'捶',p:'chuí',w:['捶打','捶平','捶腿']},{c:'捷',p:'jié',w:['捷克','便捷','快捷']},{c:'捺',p:'nà',w:['一捺','安捺','按捺']},{c:'捻',p:'niǎn',w:['加捻','捻军','捻子']},{c:'掀',p:'xiān',w:['掀起','掀开','掀翻']},{c:'掂',p:'diān',w:['掂出','掂算','掂量']},{c:'授',p:'shòu',w:['教授','授权','授予']},{c:'掉',p:'diào',w:['卖掉','丢掉','干掉']},{c:'掌',p:'zhǎng',w:['掌握','掌控','掌声']},{c:'掏',p:'tāo',w:['掏出','掏钱','掏空']},{c:'掐',p:'qiā',w:['掐到','掐着','掐住']},{c:'排',p:'pái',w:['安排','排名','排除']},{c:'掖',p:'yē',w:['张掖']},{c:'掘',p:'jué',w:['发掘','挖掘','掘金']},{c:'掠',p:'lüè',w:['掠过','劫掠']},{c:'探',p:'tàn',w:['探索','探讨','侦探']},{c:'接',p:'jiē',w:['直接','接受','链接']},{c:'控',p:'kòng',w:['控制','监控','指控']},{c:'推',p:'tuī',w:['推动','推出','推荐']},{c:'掩',p:'yǎn',w:['掩盖','掩饰','掩护']},{c:'措',p:'cuò',w:['措施','举措','筹措']},{c:'掰',p:'bāi',w:['掰开']},{c:'掷',p:'zhì',w:['投掷']},{c:'掸',p:'dǎn',w:['掸子','掸邦']},{c:'掺',p:'càn',w:['掺杂']},{c:'揉',p:'róu',w:['揉作','揉成','揉面']},{c:'揍',p:'zòu',w:['不揍','快揍','别揍']},{c:'描',p:'miáo',w:['描述','描写','描绘']},{c:'提',p:'tí',w:['提供','提出','提高']},{c:'插',p:'chā',w:['插入','插图','插手']},{c:'揖',p:'yī',w:['作揖','揖别','揖让']},{c:'握',p:'wò',w:['掌握','把握','握手']},{c:'揣',p:'chuāi',w:['揣测','揣摩']},{c:'揩',p:'kāi',w:['揩去','揩手','揩除']},{c:'揪',p:'jiū',w:['揪出','揪住','揪心']},{c:'揭',p:'jiē',w:['揭露','揭开','揭示']},{c:'援',p:'yuán',w:['援助','支援','救援']},{c:'揽',p:'lǎn',w:['招揽','包揽']},{c:'搀',p:'chān',w:['搀住','搀假','搀和']},{c:'搁',p:'gē',w:['搁置','搁浅','耽搁']},{c:'搂',p:'lǒu',w:['搂钱','搂住','搂入']},{c:'搅',p:'jiǎo',w:['搅拌','搅乱']},{c:'搏',p:'bó',w:['拼搏','搏斗','脉搏']},{c:'搓',p:'cuō',w:['搓到','搓成','搓过']},{c:'搔',p:'sāo',w:['搔手','搔头','搔首']},{c:'搜',p:'sōu',w:['搜索','搜狐','搜集']},{c:'搞',p:'gǎo',w:['搞笑','搞出','快搞']},{c:'搪',p:'táng',w:['推搪','搪塞','搪帐']},{c:'搬',p:'bān',w:['搬迁','搬家','搬运']},{c:'搭',p:'dā',w:['搭配','搭乘','搭建']},{c:'携',p:'xié',w:['携带','携手','便携']},{c:'摄',p:'shè',w:['拍摄','摄影','摄氏']},{c:'摆',p:'bǎi',w:['摆脱','摆在','摇摆']},{c:'摇',p:'yáo',w:['动摇','摇滚','摇晃']},{c:'摊',p:'tān',w:['摊位','摊贩','分摊']},{c:'摔',p:'shuāi',w:['摔倒','摔下','摔到']},{c:'摘',p:'zhāi',w:['摘要','摘自','摘下']},{c:'摧',p:'cuī',w:['摧毁','摧残']},{c:'摩',p:'mó',w:['按摩','摩擦','摩根']},{c:'摸',p:'mō',w:['抚摸','触摸','摸摸']},{c:'摹',p:'mó',w:['临摹']},{c:'撇',p:'piē',w:['撇开']},{c:'撑',p:'chēng',w:['支撑','撑腰','撑到']},{c:'撒',p:'sā',w:['撒谎','凯撒','撒尿']},{c:'撕',p:'sī',w:['撕裂','撕开','撕毁']},{c:'撞',p:'zhuàng',w:['碰撞','撞击','相撞']},{c:'撤',p:'chè',w:['撤销','撤离','撤退']},{c:'撩',p:'liāo',w:['撩上','撩人','撩开']},{c:'撬',p:'qiào',w:['撬上','撬下','撬开']},{c:'播',p:'bō',w:['传播','直播','广播']},{c:'撮',p:'cuō',w:['撮合']},{c:'撰',p:'zhuàn',w:['撰写','撰文','编撰']},{c:'撵',p:'niǎn',w:['撵出','撵去','撵开']},{c:'撼',p:'hàn',w:['震撼','撼动']},{c:'擂',p:'léi',w:['擂台']},{c:'擅',p:'shàn',w:['擅长','擅自','擅于']},{c:'操',p:'cāo',w:['操作','操纵','操控']},{c:'擎',p:'qíng',w:['引擎']},{c:'擒',p:'qín',w:['就擒','成擒','擒住']},{c:'擦',p:'cā',w:['摩擦','可擦','擦出']},{c:'攀',p:'pān',w:['攀升','攀登','攀爬']},{c:'攒',p:'zǎn',w:['积攒']},{c:'攘',p:'rǎng',w:['攘土','攘外','攘除']},{c:'支',p:'zhī',w:['支持','支付','支援']},{c:'收',p:'shōu',w:['收入','收到','收集']},{c:'改',p:'gǎi',w:['改变','改革','改善']},{c:'攻',p:'gōng',w:['攻击','进攻','围攻']},{c:'放',p:'fàng',w:['开放','放弃','放在']},{c:'政',p:'zhèng',w:['政府','政治','政策']},{c:'故',p:'gù',w:['故事','事故','故意']},{c:'效',p:'xiào',w:['有效','效果','效应']},{c:'敌',p:'dí',w:['敌人','无敌','敌对']},{c:'敏',p:'mǐn',w:['敏感','过敏','敏锐']},{c:'救',p:'jiù',w:['拯救','救援','救助']},{c:'教',p:'jiào',w:['教育','教师','宗教']},{c:'敛',p:'liǎn',w:['收敛','敛财']},{c:'敞',p:'chǎng',w:['敞开','宽敞']},{c:'敢',p:'gǎn',w:['不敢','勇敢','敢于']},{c:'散',p:'sàn',w:['扩散','分散','解散']},{c:'敦',p:'dūn',w:['伦敦','敦促','敦煌']},{c:'敬',p:'jìng',w:['尊敬','致敬','敬意']},{c:'数',p:'shù',w:['数据','人数','数字']},{c:'敲',p:'qiāo',w:['敲门','敲诈','敲打']},{c:'整',p:'zhěng',w:['整个','调整','整体']},{c:'敷',p:'fū',w:['敷衍']},{c:'文',p:'wén',w:['文化','文章','文件']},{c:'斋',p:'zhāi',w:['斋戒']},{c:'斑',p:'bān',w:['斑点','斑马','斑斑']},{c:'斗',p:'dòu',w:['战斗','斗争','奋斗']},{c:'料',p:'liào',w:['资料','材料','原料']},{c:'斜',p:'xié',w:['倾斜','斜坡']},{c:'斟',p:'zhēn',w:['斟酌']},{c:'斤',p:'jīn',w:['公斤','一斤','万斤']},{c:'斥',p:'chì',w:['排斥','充斥','驳斥']},{c:'斧',p:'fǔ',w:['斧头','战斧']},{c:'斩',p:'zhǎn',w:['斩首','斩断','斩下']},{c:'断',p:'duàn',w:['不断','判断','垄断']},{c:'斯',p:'sī',w:['罗斯','波斯','斯特']},{c:'新',p:'xīn',w:['新闻','重新','创新']},{c:'方',p:'fāng',w:['地方','方式','方法']},{c:'施',p:'shī',w:['实施','措施','设施']},{c:'旁',p:'páng',w:['旁边','身旁','一旁']},{c:'旅',p:'lǚ',w:['旅游','旅行','旅客']},{c:'旋',p:'xuán',w:['旋转','旋律','旋风']},{c:'族',p:'zú',w:['民族','家族','种族']},{c:'旗',p:'qí',w:['旗下','旗帜','国旗']},{c:'无',p:'wú',w:['无法','无论','毫无']},{c:'既',p:'jì',w:['既然','既有','既是']},{c:'旦',p:'dàn',w:['一旦','约旦','元旦']},{c:'旧',p:'jiù',w:['依旧','仍旧','旧址']},{c:'旨',p:'zhǐ',w:['宗旨','旨在','主旨']},{c:'早',p:'zǎo',w:['早上','早就','早已']},{c:'旬',p:'xún',w:['中旬','下旬','上旬']},{c:'旭',p:'xù',w:['旭日','张旭','旭东']},{c:'旱',p:'hàn',w:['乾旱','干旱','旱灾']},{c:'时',p:'shí',w:['时间','时候','同时']},{c:'旷',p:'kuàng',w:['空旷']},{c:'旺',p:'wàng',w:['旺盛','兴旺','旺角']},{c:'昂',p:'áng',w:['昂贵','高昂','里昂']},{c:'昆',p:'kūn',w:['昆明','昆虫','昆仑']},{c:'昌',p:'chāng',w:['南昌','武昌','宜昌']},{c:'明',p:'míng',w:['说明','证明','明白']},{c:'昏',p:'hūn',w:['昏迷','黄昏','昏暗']},{c:'易',p:'yì',w:['容易','交易','贸易']},{c:'昔',p:'xī',w:['昔日','往昔']},{c:'昙',p:'tán',w:['昙花']},{c:'映',p:'yìng',w:['反映','上映','放映']},{c:'春',p:'chūn',w:['青春','春天','春节']},{c:'昧',p:'mèi',w:['愚昧']},{c:'昨',p:'zuó',w:['昨天','昨晚','昨日']},{c:'昭',p:'zhāo',w:['昭和','昭通']},{c:'是',p:'shì',w:['不是','就是','但是']},{c:'昵',p:'nì',w:['昵称']},{c:'昼',p:'zhòu',w:['昼夜','白昼']},{c:'显',p:'xiǎn',w:['显示','明显','显然']},{c:'晃',p:'huǎng',w:['摇晃','晃动']},{c:'晋',p:'jìn',w:['晋升','晋级','东晋']},{c:'晌',p:'shǎng',w:['前晌','半晌','后晌']},{c:'晒',p:'shài',w:['会晒','日晒','晒过']},{c:'晓',p:'xiǎo',w:['晓得','知晓','揭晓']},{c:'晕',p:'yūn',w:['头晕','晕倒','日晕']},{c:'晚',p:'wǎn',w:['晚上','今晚','昨晚']},{c:'晤',p:'wù',w:['会晤']},{c:'晦',p:'huì',w:['隐晦','晦涩']},{c:'晨',p:'chén',w:['凌晨','早晨','清晨']},{c:'普',p:'pǔ',w:['普通','普遍','普及']},{c:'景',p:'jǐng',w:['背景','场景','风景']},{c:'晰',p:'xī',w:['清晰','明晰']},{c:'晴',p:'qíng',w:['晴天','晴朗']},{c:'晶',p:'jīng',w:['水晶','结晶','晶体']},{c:'智',p:'zhì',w:['智慧','智能','理智']},{c:'晾',p:'liàng',w:['晾台','晾完','晾干']},{c:'暂',p:'zàn',w:['暂时','暂停','短暂']},{c:'暇',p:'xiá',w:['闲暇','无暇']},{c:'暑',p:'shǔ',w:['暑假','暑期','避暑']},{c:'暖',p:'nuǎn',w:['温暖','取暖','暖气']},{c:'暗',p:'àn',w:['黑暗','暗示','暗中']},{c:'暮',p:'mù',w:['岁暮','日暮','暮岁']},{c:'暴',p:'bào',w:['暴力','风暴','暴露']},{c:'曙',p:'shǔ',w:['曙光']},{c:'曲',p:'qū',w:['歌曲','曲线','扭曲']},{c:'更',p:'gèng',w:['更加','更新','更好']},{c:'曹',p:'cáo',w:['曹操','兵曹']},{c:'曼',p:'màn',w:['阿曼','曼谷','曼联']},{c:'曾',p:'céng',w:['曾经','中曾','不曾']},{c:'替',p:'tì',w:['代替','替代','替换']},{c:'最',p:'zuì',w:['最后','最大','最高']},{c:'有',p:'yǒu',w:['没有','所有','还有']},{c:'朋',p:'péng',w:['朋友','朋克','亲朋']},{c:'服',p:'fú',w:['服务','衣服','服装']},{c:'朗',p:'lǎng',w:['伊朗','布朗','开朗']},{c:'望',p:'wàng',w:['希望','失望','愿望']},{c:'朝',p:'cháo',w:['朝鲜','王朝','朝廷']},{c:'期',p:'qī',w:['时期','期间','长期']},{c:'朦',p:'méng',w:['朦胧']},{c:'未',p:'wèi',w:['未来','尚未','从未']},{c:'末',p:'mò',w:['周末','年末','末日']},{c:'本',p:'běn',w:['日本','根本','基本']},{c:'术',p:'shù',w:['技术','艺术','学术']},{c:'朱',p:'zhū',w:['朱德','朱家','朱文']},{c:'朴',p:'pǔ',w:['朴素','朴实','简朴']},{c:'朵',p:'duǒ',w:['耳朵','花朵','一朵']},{c:'机',p:'jī',w:['机构','机会','手机']},{c:'朽',p:'xiǔ',w:['不朽']},{c:'杂',p:'zá',w:['复杂','杂志','杂交']},{c:'权',p:'quán',w:['权利','权力','政权']},{c:'杆',p:'gān',w:['杠杆','栏杆','杆菌']},{c:'杈',p:'chā',w:['打杈','树杈','枝杈']},{c:'杉',p:'shān',w:['上杉','水杉','云杉']},{c:'李',p:'lǐ',w:['行李','李鹏','李白']},{c:'杏',p:'xìng',w:['杏仁','银杏']},{c:'材',p:'cái',w:['材料','题材','教材']},{c:'村',p:'cūn',w:['农村','乡村','村民']},{c:'杖',p:'zhàng',w:['拐杖']},{c:'杜',p:'dù',w:['杜绝','杜鹃','杜威']},{c:'束',p:'shù',w:['结束','约束','束缚']},{c:'杠',p:'gāng',w:['杠杆']},{c:'条',p:'tiáo',w:['条件','一条','条例']},{c:'来',p:'lái',w:['起来','出来','来自']},{c:'杨',p:'yáng',w:['白杨','意杨','杨维']},{c:'杭',p:'háng',w:['杭州']},{c:'杯',p:'bēi',w:['一杯','杯子','杯中']},{c:'杰',p:'jié',w:['杰出','杰克','杰作']},{c:'松',p:'sōng',w:['轻松','放松','宽松']},{c:'板',p:'bǎn',w:['老板','地板','板块']},{c:'极',p:'jí',w:['积极','极端','极为']},{c:'构',p:'gòu',w:['机构','结构','构成']},{c:'枉',p:'wǎng',w:['冤枉']},{c:'析',p:'xī',w:['分析','解析','剖析']},{c:'枕',p:'zhěn',w:['枕头']},{c:'枚',p:'méi',w:['一枚','两枚','多枚']},{c:'枝',p:'zhī',w:['树枝','荔枝','一枝']},{c:'枢',p:'shū',w:['枢纽','中枢']},{c:'枣',p:'zǎo',w:['红枣']},{c:'枪',p:'qiāng',w:['开枪','手枪','步枪']},{c:'枫',p:'fēng',w:['枫叶']},{c:'枯',p:'kū',w:['枯竭','枯燥','枯萎']},{c:'架',p:'jià',w:['绑架','框架','架构']},{c:'枷',p:'jiā',w:['枷锁']},{c:'柄',p:'bǐng',w:['手柄','把柄','笑柄']},{c:'柏',p:'bǎi',w:['柏林']},{c:'某',p:'mǒu',w:['某些','某个','某种']},{c:'柑',p:'gān',w:['柑橘']},{c:'染',p:'rǎn',w:['污染','感染','传染']},{c:'柔',p:'róu',w:['温柔','柔软','柔和']},{c:'柜',p:'guì',w:['柜台','衣柜','柜子']},{c:'柠',p:'níng',w:['柠檬']},{c:'查',p:'chá',w:['调查','检查','审查']},{c:'柬',p:'jiǎn',w:['下柬','柬国','柬请']},{c:'柱',p:'zhù',w:['支柱','柱子','石柱']},{c:'柳',p:'liǔ',w:['柳州','柳树']},{c:'柴',p:'chái',w:['柴油','火柴','柴火']},{c:'柿',p:'shì',w:['柿子']},{c:'栅',p:'zhà',w:['栅栏']},{c:'标',p:'biāo',w:['目标','标准','标志']},{c:'栈',p:'zhàn',w:['客栈','栈道']},{c:'栋',p:'dòng',w:['一栋','这栋','两栋']},{c:'栏',p:'lán',w:['专栏','栏目','栏杆']},{c:'栓',p:'shuān',w:['打栓','栓子','水栓']},{c:'栖',p:'qī',w:['栖息','两栖','栖身']},{c:'栗',p:'lì',w:['苗栗','栗子']},{c:'校',p:'xiào',w:['学校','校长','校园']},{c:'株',p:'zhū',w:['株洲','植株','一株']},{c:'样',p:'yàng',w:['这样','一样','怎样']},{c:'核',p:'hé',w:['核心','考核','审核']},{c:'根',p:'gēn',w:['根据','根本','一根']},{c:'格',p:'gé',w:['价格','资格','风格']},{c:'栽',p:'zāi',w:['栽培','栽种','栽赃']},{c:'桂',p:'guì',w:['桂林','桂花','桂冠']},{c:'桃',p:'táo',w:['桃园','桃花','樱桃']},{c:'桅',p:'wéi',w:['上桅','中桅','主桅']},{c:'框',p:'kuāng',w:['框架','边框']},{c:'案',p:'àn',w:['方案','案件','答案']},{c:'桌',p:'zhuō',w:['桌子','桌上','桌面']},{c:'桐',p:'tóng',w:['桐乡','桐城','桐子']},{c:'桑',p:'sāng',w:['沧桑','桑拿','哈桑']},{c:'档',p:'dàng',w:['档案','文档','档次']},{c:'桥',p:'qiáo',w:['大桥','桥梁','天桥']},{c:'桦',p:'huà',w:['桦南','白桦','黑桦']},{c:'桨',p:'jiǎng',w:['螺旋桨']},{c:'桩',p:'zhuāng',w:['一桩']},{c:'桶',p:'tǒng',w:['马桶','一桶','水桶']},{c:'梁',p:'liáng',w:['桥梁','梁家','梁山']},{c:'梅',p:'méi',w:['梅花','梅林','梅县']},{c:'梆',p:'bāng',w:['梆子','梆硬','梆敌']},{c:'梗',p:'gěng',w:['梗到','梗着','作梗']},{c:'梢',p:'shāo',w:['发梢','梢头','梢子']},{c:'梦',p:'mèng',w:['梦想','做梦','梦见']},{c:'梧',p:'wú',w:['梧州','魁梧']},{c:'梨',p:'lí',w:['雪梨','凤梨','梨花']},{c:'梭',p:'suō',w:['穿梭','卢梭']},{c:'梯',p:'tī',w:['电梯','楼梯','阶梯']},{c:'械',p:'xiè',w:['机械','器械','枪械']},{c:'梳',p:'shū',w:['梳理','梳子']},{c:'检',p:'jiǎn',w:['检查','检测','检验']},{c:'棉',p:'mián',w:['棉花','石棉','棉布']},{c:'棋',p:'qí',w:['棋牌','围棋','棋子']},{c:'棍',p:'gùn',w:['棍子','光棍','恶棍']},{c:'棒',p:'bàng',w:['棒球','大棒','太棒']},{c:'棕',p:'zōng',w:['棕色']},{c:'棘',p:'jí',w:['棘手','荆棘']},{c:'棚',p:'péng',w:['摄影棚']},{c:'棠',p:'táng',w:['海棠']},{c:'棱',p:'léng',w:['棱镜']},{c:'棵',p:'kē',w:['一棵']},{c:'棺',p:'guān',w:['棺材','棺木','石棺']},{c:'椅',p:'yǐ',w:['椅子','轮椅','座椅']},{c:'植',p:'zhí',w:['植物','种植','移植']},{c:'椎',p:'chuí',w:['脊椎']},{c:'椒',p:'jiāo',w:['辣椒','胡椒','花椒']},{c:'椭',p:'tuǒ',w:['椭圆']},{c:'椰',p:'yē',w:['椰子']},{c:'椿',p:'chūn',w:['打椿','椿树','椿皮']},{c:'楔',p:'xiē',w:['楔住','楔入','楔子']},{c:'楚',p:'chǔ',w:['清楚','楚国','楚州']},{c:'楞',p:'léng',w:['发楞','楞了','楞次']},{c:'楣',p:'méi',w:['倒楣','房楣','门楣']},{c:'楷',p:'kǎi',w:['楷模']},{c:'楼',p:'lóu',w:['大楼','楼下','楼梯']},{c:'概',p:'gài',w:['概念','大概','概率']},{c:'榄',p:'lǎn',w:['橄榄']},{c:'榆',p:'yú',w:['榆林','榆树']},{c:'榔',p:'láng',w:['榔头','榔榆']},{c:'榕',p:'róng',w:['榕城','榕树','榕江']},{c:'榛',p:'zhēn',w:['榛子','榛属','林榛']},{c:'榜',p:'bǎng',w:['榜样','上榜','榜首']},{c:'榨',p:'zhà',w:['压榨','榨菜','榨取']},{c:'榴',p:'liú',w:['石榴','榴弹']},{c:'槐',p:'huái',w:['国槐','槐林','槐米']},{c:'槽',p:'cáo',w:['跳槽','水槽','地槽']},{c:'樊',p:'fán',w:['樊城','樊马','樊南']},{c:'樟',p:'zhāng',w:['大樟','樟子','黄樟']},{c:'模',p:'mó',w:['模式','规模','模型']},{c:'横',p:'héng',w:['横向','横跨','纵横']},{c:'樱',p:'yīng',w:['樱花','樱桃']},{c:'橄',p:'gǎn',w:['橄榄']},{c:'橘',p:'jú',w:['橘子','柑橘','橘色']},{c:'橙',p:'chéng',w:['橙色']},{c:'橡',p:'xiàng',w:['橡胶','橡皮','橡树']},{c:'橱',p:'chú',w:['橱窗','衣橱']},{c:'檀',p:'tán',w:['檀那','黄檀','檀岛']},{c:'檐',p:'yán',w:['檐下','檐前','檐口']},{c:'檬',p:'méng',w:['柠檬']},{c:'欠',p:'qiàn',w:['欠缺','拖欠','所欠']},{c:'次',p:'cì',w:['一次','这次','再次']},{c:'欢',p:'huān',w:['喜欢','欢迎','欢乐']},{c:'欣',p:'xīn',w:['欣赏','欣慰','欣喜']},{c:'欧',p:'ōu',w:['欧洲','欧盟','欧元']},{c:'欲',p:'yù',w:['欲望','性欲','所欲']},{c:'欺',p:'qī',w:['欺负','欺诈','欺凌']},{c:'款',p:'kuǎn',w:['贷款','条款','一款']},{c:'歇',p:'xiē',w:['停歇','间歇','歇业']},{c:'歉',p:'qiàn',w:['道歉','抱歉','致歉']},{c:'歌',p:'gē',w:['歌曲','歌手','诗歌']},{c:'止',p:'zhǐ',w:['停止','禁止','阻止']},{c:'正',p:'zhèng',w:['正在','真正','正式']},{c:'此',p:'cǐ',w:['因此','如此','此外']},{c:'步',p:'bù',w:['进步','一步','逐步']},{c:'武',p:'wǔ',w:['武器','武汉','武装']},{c:'歧',p:'qí',w:['歧视','分歧','歧途']},{c:'歪',p:'wāi',w:['歪曲','歪歪']},{c:'歹',p:'dǎi',w:['歹徒','好歹']},{c:'死',p:'sǐ',w:['死亡','死刑','死者']},{c:'歼',p:'jiān',w:['歼灭']},{c:'殃',p:'yāng',w:['遭殃']},{c:'殉',p:'xùn',w:['殉难','殉职']},{c:'殊',p:'shū',w:['特殊','悬殊','殊荣']},{c:'残',p:'cán',w:['残酷','残忍','残留']},{c:'殖',p:'zhí',w:['养殖','殖民','繁殖']},{c:'殴',p:'ōu',w:['殴打','斗殴']},{c:'段',p:'duàn',w:['阶段','手段','一段']},{c:'殷',p:'yīn',w:['殷勤']},{c:'殿',p:'diàn',w:['宫殿','圣殿','殿下']},{c:'毁',p:'huǐ',w:['摧毁','毁灭','烧毁']},{c:'毅',p:'yì',w:['毅力','陈毅','毅然']},{c:'母',p:'mǔ',w:['母亲','父母','字母']},{c:'每',p:'měi',w:['每个','每天','每年']},{c:'比',p:'bǐ',w:['比较','比赛','比如']},{c:'毕',p:'bì',w:['毕业','毕竟','完毕']},{c:'毙',p:'bì',w:['击毙','枪毙','毙命']},{c:'毡',p:'zhān',w:['地毡','毡呢','毡子']},{c:'毫',p:'háo',w:['毫无','毫米','丝毫']},{c:'毯',p:'tǎn',w:['地毯','毛毯','毯子']},{c:'氏',p:'shì',w:['氏族','姓氏','摄氏']},{c:'民',p:'mín',w:['人民','民主','民族']},{c:'氓',p:'máng',w:['流氓']},{c:'气',p:'qì',w:['天气','空气','气候']},{c:'氛',p:'fēn',w:['气氛','氛围']},{c:'氢',p:'qīng',w:['氢弹','氢气']},{c:'氧',p:'yǎng',w:['氧气','氧化','缺氧']},{c:'氨',p:'ān',w:['氨基']},{c:'氮',p:'dàn',w:['氮气']},{c:'氯',p:'lǜ',w:['氯气']},{c:'永',p:'yǒng',w:['永远','永久','永恒']},{c:'汁',p:'zhī',w:['果汁','乳汁']},{c:'求',p:'qiú',w:['要求','需求','请求']},{c:'汇',p:'huì',w:['外汇','汇率','汇报']},{c:'汉',p:'hàn',w:['武汉','汉语','汉族']},{c:'汗',p:'hàn',w:['汗水','出汗','多汗']},{c:'汛',p:'xùn',w:['防汛']},{c:'汞',p:'gǒng',w:['化汞','红汞','升汞']},{c:'江',p:'jiāng',w:['江苏','浙江','江西']},{c:'池',p:'chí',w:['电池','泳池','池塘']},{c:'污',p:'wū',w:['污染','贪污','污水']},{c:'汤',p:'tāng',w:['汤姆','鸡汤','汤水']},{c:'汪',p:'wāng',w:['汪洋','汪汪']},{c:'汰',p:'tài',w:['淘汰']},{c:'汹',p:'xiōng',w:['汹涌']},{c:'汽',p:'qì',w:['汽车','汽油','蒸汽']},{c:'沃',p:'wò',w:['肥沃','沃伦']},{c:'沈',p:'shěn',w:['沈阳']},{c:'沉',p:'chén',w:['沉默','沉重','沉淀']},{c:'沐',p:'mù',w:['沐浴']},{c:'沙',p:'shā',w:['长沙','沙漠','沙发']},{c:'沛',p:'pèi',w:['充沛']},{c:'沟',p:'gōu',w:['沟通','鸿沟','水沟']},{c:'没',p:'méi',w:['没有','没错','没事']},{c:'沥',p:'lì',w:['沥青']},{c:'沦',p:'lún',w:['沦为','沦陷','沦落']},{c:'沧',p:'cāng',w:['沧州','沧桑']},{c:'沪',p:'hù',w:['京沪','沪军','沪市']},{c:'沫',p:'mò',w:['泡沫']},{c:'沮',p:'jǔ',w:['沮丧']},{c:'河',p:'hé',w:['河南','河北','河流']},{c:'沸',p:'fèi',w:['沸腾','沸点']},{c:'油',p:'yóu',w:['石油','加油','汽油']},{c:'治',p:'zhì',w:['政治','治疗','统治']},{c:'沼',p:'zhǎo',w:['沼泽','沼气']},{c:'沽',p:'gū',w:['塘沽']},{c:'沾',p:'zhān',w:['沾满','沾染','沾有']},{c:'沿',p:'yán',w:['沿海','沿岸','沿着']},{c:'泄',p:'xiè',w:['泄露','泄漏','发泄']},{c:'泉',p:'quán',w:['温泉','泉州','源泉']},{c:'泊',p:'pō',w:['湖泊','停泊','漂泊']},{c:'泌',p:'mì',w:['分泌']},{c:'法',p:'fǎ',w:['无法','法律','方法']},{c:'泛',p:'fàn',w:['广泛','泛滥','泛美']},{c:'泞',p:'nìng',w:['泥泞']},{c:'泡',p:'pào',w:['泡沫','泡泡','灯泡']},{c:'波',p:'bō',w:['波兰','波动','宁波']},{c:'泣',p:'qì',w:['哭泣']},{c:'泥',p:'ní',w:['水泥','泥土','泥沙']},{c:'注',p:'zhù',w:['注意','关注','注册']},{c:'泪',p:'lèi',w:['眼泪','泪水','流泪']},{c:'泰',p:'tài',w:['泰国','泰勒','泰山']},{c:'泳',p:'yǒng',w:['游泳','泳池','泳装']},{c:'泵',p:'bèng',w:['水泵']},{c:'泻',p:'xiè',w:['腹泻','倾泻']},{c:'泼',p:'pō',w:['活泼','泼妇']},{c:'泽',p:'zé',w:['沼泽','光泽','色泽']},{c:'洁',p:'jié',w:['清洁','简洁','纯洁']},{c:'洋',p:'yáng',w:['海洋','西洋','大洋']},{c:'洒',p:'sǎ',w:['洒脱','喷洒','挥洒']},{c:'洗',p:'xǐ',w:['清洗','洗澡','洗礼']},{c:'洛',p:'luò',w:['洛阳','洛克','洛夫']},{c:'洞',p:'dòng',w:['漏洞','洞穴','黑洞']},{c:'津',p:'jīn',w:['天津','津贴','牛津']},{c:'洪',p:'hóng',w:['洪水','洪灾','防洪']},{c:'洲',p:'zhōu',w:['欧洲','亚洲','非洲']},{c:'活',p:'huó',w:['活动','生活','活跃']},{c:'洼',p:'wā',w:['低洼']},{c:'洽',p:'qià',w:['洽谈','融洽','接洽']},{c:'派',p:'pài',w:['派出','派遣','左派']},{c:'流',p:'liú',w:['交流','流行','主流']},{c:'浅',p:'qiǎn',w:['肤浅','搁浅','浅薄']},{c:'浆',p:'jiāng',w:['岩浆','豆浆','糖浆']},{c:'浇',p:'jiāo',w:['浇水']},{c:'浊',p:'zhuó',w:['浊水','浊声','浊度']},{c:'测',p:'cè',w:['测试','预测','检测']},{c:'济',p:'jì',w:['经济','济南','救济']},{c:'浑',p:'hún',w:['浑身']},{c:'浓',p:'nóng',w:['浓度','浓厚','浓缩']},{c:'浙',p:'zhè',w:['浙江','江浙']},{c:'浦',p:'pǔ',w:['浦东']},{c:'浩',p:'hào',w:['浩劫','浩大']},{c:'浪',p:'làng',w:['浪费','浪漫','新浪']},{c:'浮',p:'fú',w:['浮现','浮动','漂浮']},{c:'浴',p:'yù',w:['浴室','沐浴','浴缸']},{c:'海',p:'hǎi',w:['上海','海外','海军']},{c:'浸',p:'jìn',w:['沉浸','浸泡']},{c:'涂',p:'tú',w:['糊涂','涂鸦','涂料']},{c:'消',p:'xiāo',w:['消息','取消','消费']},{c:'涉',p:'shè',w:['涉及','干涉','涉嫌']},{c:'涌',p:'yǒng',w:['涌现','涌入','汹涌']},{c:'涎',p:'xián',w:['多涎','流涎','涎水']},{c:'涕',p:'tì',w:['鼻涕']},{c:'涛',p:'tāo',w:['波涛']},{c:'涝',p:'lào',w:['内涝','抗涝','排涝']},{c:'涡',p:'wō',w:['涡轮','漩涡','旋涡']},{c:'涣',p:'huàn',w:['美涣','涣散','涣然']},{c:'涤',p:'dí',w:['洗涤']},{c:'润',p:'rùn',w:['利润','滋润','湿润']},{c:'涧',p:'jiàn',w:['南涧','山涧','干涧']},{c:'涨',p:'zhǎng',w:['上涨','高涨','涨幅']},{c:'涩',p:'sè',w:['羞涩','苦涩','青涩']},{c:'涮',p:'shuàn',w:['开涮','洗涮','涮洗']},{c:'涯',p:'yá',w:['生涯','天涯']},{c:'液',p:'yè',w:['液体','精液','溶液']},{c:'涵',p:'hán',w:['内涵','涵盖','涵义']},{c:'淀',p:'diàn',w:['沉淀','海淀','淀粉']},{c:'淆',p:'xiáo',w:['混淆']},{c:'淋',p:'lín',w:['淋浴','淋巴']},{c:'淌',p:'tǎng',w:['流淌']},{c:'淑',p:'shū',w:['淑女']},{c:'淘',p:'táo',w:['淘汰','淘宝','淘气']},{c:'淡',p:'dàn',w:['淡水','淡化','冷淡']},{c:'淤',p:'yū',w:['淤泥']},{c:'淫',p:'yín',w:['卖淫','淫荡','淫乱']},{c:'淮',p:'huái',w:['淮南','江淮','淮河']},{c:'深',p:'shēn',w:['深入','深刻','深度']},{c:'淳',p:'chún',w:['淳朴']},{c:'混',p:'hùn',w:['混乱','混合','混淆']},{c:'淹',p:'yān',w:['淹没','水淹','淹水']},{c:'添',p:'tiān',w:['添加','增添','添乱']},{c:'清',p:'qīng',w:['清楚','清理','清晰']},{c:'渊',p:'yuān',w:['深渊','渊源','渊博']},{c:'渐',p:'jiàn',w:['逐渐','渐渐','日渐']},{c:'渔',p:'yú',w:['渔业','渔民','渔船']},{c:'渗',p:'shèn',w:['渗透','渗入','渗漏']},{c:'渠',p:'qú',w:['渠道','沟渠']},{c:'渡',p:'dù',w:['过渡','渡过','引渡']},{c:'渣',p:'zhā',w:['人渣']},{c:'渤',p:'bó',w:['渤海']},{c:'温',p:'wēn',w:['温度','温暖','温柔']},{c:'港',p:'gǎng',w:['香港','港口','港澳']},{c:'渴',p:'kě',w:['渴望','饥渴','渴求']},{c:'游',p:'yóu',w:['游戏','旅游','游行']},{c:'渺',p:'miǎo',w:['渺小','渺茫']},{c:'湃',p:'pài',w:['澎湃']},{c:'湖',p:'hú',w:['湖南','湖北','湖泊']},{c:'湘',p:'xiāng',w:['湘西','湘潭','湘江']},{c:'湾',p:'wān',w:['台湾','海湾','港湾']},{c:'湿',p:'shī',w:['湿地','潮湿','湿度']},{c:'溃',p:'kuì',w:['崩溃','击溃','溃败']},{c:'溅',p:'jiàn',w:['溅出','溅得','四溅']},{c:'溉',p:'gài',w:['灌溉']},{c:'源',p:'yuán',w:['资源','来源','能源']},{c:'溜',p:'liū',w:['溜冰','溜达','溜走']},{c:'溢',p:'yì',w:['溢出','洋溢','溢价']},{c:'溪',p:'xī',w:['本溪','溪水','溪流']},{c:'溯',p:'sù',w:['追溯','溯源','回溯']},{c:'溶',p:'róng',w:['溶液','溶解','溶剂']},{c:'溺',p:'nì',w:['溺水','溺爱']},{c:'滋',p:'zī',w:['滋味','滋润','滋生']},{c:'滑',p:'huá',w:['下滑','滑雪','滑稽']},{c:'滓',p:'zǐ',w:['沉滓','酒滓','泥滓']},{c:'滔',p:'tāo',w:['滔滔']},{c:'滚',p:'gǔn',w:['摇滚','滚动','滚蛋']},{c:'滞',p:'zhì',w:['停滞','滞留','滞后']},{c:'满',p:'mǎn',w:['满足','充满','满意']},{c:'滤',p:'lǜ',w:['过滤']},{c:'滥',p:'làn',w:['滥用','泛滥']},{c:'滨',p:'bīn',w:['滨海','海滨','横滨']},{c:'滩',p:'tān',w:['海滩','沙滩','外滩']},{c:'滴',p:'dī',w:['一滴','点滴','水滴']},{c:'漂',p:'piāo',w:['漂亮','漂流','漂浮']},{c:'漆',p:'qī',w:['油漆','漆黑','喷漆']},{c:'漏',p:'lòu',w:['漏洞','泄漏','遗漏']},{c:'漓',p:'lí',w:['漓水','漓江','淋漓']},{c:'演',p:'yǎn',w:['表演','导演','演员']},{c:'漠',p:'mò',w:['沙漠','冷漠','漠视']},{c:'漩',p:'xuán',w:['漩涡']},{c:'漫',p:'màn',w:['漫画','浪漫','漫长']},{c:'漱',p:'shù',w:['洗漱','漱口','漱洗']},{c:'漾',p:'yàng',w:['荡漾','摇漾']},{c:'潘',p:'pān',w:['潘金莲','潘多拉']},{c:'潜',p:'qián',w:['潜力','潜在','潜艇']},{c:'潦',p:'lǎo',w:['潦倒','潦草','泥潦']},{c:'潭',p:'tán',w:['湘潭','龙潭','泥潭']},{c:'潮',p:'cháo',w:['高潮','潮流','浪潮']},{c:'澄',p:'chéng',w:['澄清']},{c:'澈',p:'chè',w:['清澈']},{c:'澎',p:'pēng',w:['澎湖','澎湃']},{c:'澜',p:'lán',w:['波澜']},{c:'澡',p:'zǎo',w:['洗澡','澡堂','泡澡']},{c:'澳',p:'ào',w:['澳门','澳洲','港澳']},{c:'激',p:'jī',w:['刺激','激烈','激动']},{c:'濒',p:'bīn',w:['濒临','濒危']},{c:'瀑',p:'pù',w:['瀑布']},{c:'灌',p:'guàn',w:['灌溉','灌输','灌木']},{c:'灭',p:'miè',w:['消灭','毁灭','灭亡']},{c:'灯',p:'dēng',w:['灯光','灯笼','灯塔']},{c:'灰',p:'huī',w:['灰色','灰尘','骨灰']},{c:'灵',p:'líng',w:['灵魂','心灵','灵活']},{c:'灶',p:'zào',w:['中灶','分灶','大灶']},{c:'灸',p:'jiǔ',w:['针灸']},{c:'灼',p:'zhuó',w:['灼伤']},{c:'灾',p:'zāi',w:['灾难','灾害','火灾']},{c:'灿',p:'càn',w:['灿烂']},{c:'炉',p:'lú',w:['出炉','锅炉','火炉']},{c:'炊',p:'chuī',w:['炊事','断炊','炊具']},{c:'炎',p:'yán',w:['肺炎','炎热','肝炎']},{c:'炒',p:'chǎo',w:['炒作','炒上','小炒']},{c:'炕',p:'kàng',w:['下炕','地炕','炕上']},{c:'炫',p:'xuàn',w:['炫耀']},{c:'炬',p:'jù',w:['火炬']},{c:'炭',p:'tàn',w:['煤炭','木炭','焦炭']},{c:'炮',p:'pào',w:['大炮','炮弹','火炮']},{c:'炸',p:'zhà',w:['爆炸','炸弹','轰炸']},{c:'点',p:'diǎn',w:['一点','重点','观点']},{c:'炼',p:'liàn',w:['锻炼','修炼','提炼']},{c:'烁',p:'shuò',w:['闪烁']},{c:'烂',p:'làn',w:['灿烂','破烂','好烂']},{c:'烈',p:'liè',w:['强烈','激烈','热烈']},{c:'烘',p:'hōng',w:['烘焙','烘烤','烘乾']},{c:'烙',p:'lào',w:['烙印']},{c:'烛',p:'zhú',w:['蜡烛','烛光']},{c:'烟',p:'yān',w:['烟草','香烟','抽烟']},{c:'烤',p:'kǎo',w:['烧烤','烤肉','烤箱']},{c:'烦',p:'fán',w:['麻烦','烦恼','厌烦']},{c:'烧',p:'shāo',w:['燃烧','烧毁','发烧']},{c:'烫',p:'tàng',w:['烫伤','滚烫']},{c:'热',p:'rè',w:['热情','热爱','热烈']},{c:'烹',p:'pēng',w:['烹调']},{c:'焊',p:'hàn',w:['焊接']},{c:'焕',p:'huàn',w:['焕发']},{c:'焙',p:'bèi',w:['烘焙']},{c:'焚',p:'fén',w:['焚烧','自焚','焚毁']},{c:'焦',p:'jiāo',w:['焦点','焦虑','聚焦']},{c:'焰',p:'yàn',w:['火焰','烈焰']},{c:'然',p:'rán',w:['虽然','然后','当然']},{c:'煌',p:'huáng',w:['辉煌','敦煌']},{c:'煎',p:'jiān',w:['煎熬','煎饼']},{c:'煞',p:'shā',w:['煞车']},{c:'煤',p:'méi',w:['煤炭','煤矿','煤气']},{c:'照',p:'zhào',w:['照片','按照','照顾']},{c:'煮',p:'zhǔ',w:['煮饭','煮出','煮开']},{c:'熄',p:'xī',w:['熄灭','熄灯','熄火']},{c:'熊',p:'xióng',w:['熊猫','小熊','熊市']},{c:'熏',p:'xūn',w:['熏陶']},{c:'熔',p:'róng',w:['熔岩','熔化','熔炉']},{c:'熙',p:'xī',w:['康熙']},{c:'熟',p:'shú',w:['成熟','熟悉','熟练']},{c:'熬',p:'áo',w:['煎熬','熬夜','难熬']},{c:'燃',p:'rán',w:['燃料','燃烧','点燃']},{c:'燎',p:'liáo',w:['燎原']},{c:'燕',p:'yàn',w:['燕子','海燕','燕京']},{c:'燥',p:'zào',w:['乾燥','干燥','枯燥']},{c:'爆',p:'bào',w:['爆发','爆炸','引爆']},{c:'爪',p:'zhǎo',w:['爪子','爪牙']},{c:'爬',p:'pá',w:['上爬','爬到','爬来']},{c:'爱',p:'ài',w:['爱情','可爱','爱国']},{c:'爵',p:'jué',w:['爵士','伯爵','公爵']},{c:'父',p:'fù',w:['父亲','父母','师父']},{c:'爷',p:'yé',w:['爷爷','大爷','老爷']},{c:'爸',p:'bà',w:['爸爸','老爸','爸妈']},{c:'爹',p:'diē',w:['老爹','干爹','后爹']},{c:'爽',p:'shuǎng',w:['不爽','凉爽','清爽']},{c:'片',p:'piàn',w:['照片','图片','影片']},{c:'版',p:'bǎn',w:['版本','出版','版权']},{c:'牌',p:'pái',w:['品牌','金牌','挂牌']},{c:'牍',p:'dú',w:['书牍','公牍','文牍']},{c:'牙',p:'yá',w:['牙齿','牙膏','象牙']},{c:'牡',p:'mǔ',w:['牡丹']},{c:'牢',p:'láo',w:['坐牢','牢固','牢房']},{c:'牧',p:'mù',w:['牧师','牧场','游牧']},{c:'物',p:'wù',w:['人物','动物','物质']},{c:'牲',p:'shēng',w:['牺牲','牲畜','牲口']},{c:'牵',p:'qiān',w:['牵引','牵涉','牵连']},{c:'特',p:'tè',w:['特别','特色','特殊']},{c:'牺',p:'xī',w:['牺牲']},{c:'犀',p:'xī',w:['犀利','犀牛']},{c:'犁',p:'lí',w:['伊犁']},{c:'犬',p:'quǎn',w:['警犬','猎犬','名犬']},{c:'犯',p:'fàn',w:['犯罪','侵犯','罪犯']},{c:'状',p:'zhuàng',w:['状态','状况','现状']},{c:'犹',p:'yóu',w:['犹太','犹如','犹豫']},{c:'狂',p:'kuáng',w:['狂热','狂欢','狂野']},{c:'狈',p:'bèi',w:['狼狈']},{c:'狐',p:'hú',w:['搜狐','狐狸']},{c:'狗',p:'gǒu',w:['天狗','小狗','狗王']},{c:'狞',p:'níng',w:['狞恶','狞笑','狰狞']},{c:'狠',p:'hěn',w:['狠狠','凶狠','很狠']},{c:'狡',p:'jiǎo',w:['狡猾','狡诈']},{c:'独',p:'dú',w:['独立','独特','单独']},{c:'狭',p:'xiá',w:['狭窄','狭隘','狭小']},{c:'狮',p:'shī',w:['狮子','石狮','雄狮']},{c:'狰',p:'zhēng',w:['狰狞']},{c:'狱',p:'yù',w:['监狱','地狱','入狱']},{c:'狸',p:'lí',w:['狐狸']},{c:'狼',p:'láng',w:['色狼','狼头','狼山']},{c:'猎',p:'liè',w:['猎人','猎物','打猎']},{c:'猖',p:'chāng',w:['猖狂']},{c:'猛',p:'měng',w:['猛烈','迅猛','凶猛']},{c:'猜',p:'cāi',w:['猜测','猜想','猜中']},{c:'猩',p:'xīng',w:['猩猩']},{c:'猪',p:'zhū',w:['猪肉','猪只','种猪']},{c:'猫',p:'māo',w:['熊猫','小猫','金猫']},{c:'猬',p:'wèi',w:['刺猬']},{c:'献',p:'xiàn',w:['贡献','文献','奉献']},{c:'猴',p:'hóu',w:['猴子']},{c:'猾',p:'huá',w:['狡猾']},{c:'猿',p:'yuán',w:['人猿','猿人','猿类']},{c:'玄',p:'xuán',w:['玄机','玄学','玄武']},{c:'率',p:'lǜ',w:['效率','频率','汇率']},{c:'玉',p:'yù',w:['玉米','玉林','宝玉']},{c:'王',p:'wáng',w:['国王','王国','女王']},{c:'玖',p:'jiǔ',w:['玖艘']},{c:'玛',p:'mǎ',w:['玛丽','玛雅','爱玛']},{c:'玩',p:'wán',w:['玩家','玩具','把玩']},{c:'玫',p:'méi',w:['玫瑰']},{c:'环',p:'huán',w:['环境','环保','循环']},{c:'现',p:'xiàn',w:['现在','发现','出现']},{c:'玲',p:'líng',w:['张爱玲','林志玲','刘嘉玲']},{c:'玷',p:'diàn',w:['玷污']},{c:'玻',p:'bō',w:['玻璃','玻尔']},{c:'珊',p:'shān',w:['苏珊']},{c:'珍',p:'zhēn',w:['珍贵','珍惜','珍珠']},{c:'珠',p:'zhū',w:['珠宝','珍珠','珠海']},{c:'班',p:'bān',w:['上班','航班','下班']},{c:'球',p:'qiú',w:['全球','足球','地球']},{c:'琅',p:'láng',w:['广琅','施琅']},{c:'理',p:'lǐ',w:['管理','处理','理论']},{c:'琉',p:'liú',w:['琉璃','琉球']},{c:'琐',p:'suǒ',w:['繁琐','琐事','琐碎']},{c:'琢',p:'zuó',w:['琢磨']},{c:'琳',p:'lín',w:['琳娜']},{c:'琴',p:'qín',w:['钢琴','弹琴','口琴']},{c:'琼',p:'qióng',w:['琼斯']},{c:'瑞',p:'ruì',w:['瑞典','瑞士','瑞金']},{c:'瑟',p:'sè',w:['亚瑟','瑟夫','约瑟']},{c:'瑰',p:'guī',w:['玫瑰']},{c:'璃',p:'lí',w:['玻璃','琉璃']},{c:'璧',p:'bì',w:['璧人','璧月','合璧']},{c:'瓢',p:'piáo',w:['一瓢','两瓢','几瓢']},{c:'瓣',p:'bàn',w:['豆瓣','花瓣']},{c:'瓤',p:'ráng',w:['内瓤','瓤子','沙瓤']},{c:'瓦',p:'wǎ',w:['瓦解','瓦斯','千瓦']},{c:'瓮',p:'wèng',w:['水瓮','瓮中','瓮城']},{c:'瓶',p:'píng',w:['一瓶','瓶子','瓶颈']},{c:'瓷',p:'cí',w:['陶瓷','瓷器','瓷砖']},{c:'甘',p:'gān',w:['甘肃','甘蔗','甘心']},{c:'甚',p:'shèn',w:['甚至','甚么','甚是']},{c:'甜',p:'tián',w:['甜蜜','甜美','甜点']},{c:'生',p:'shēng',w:['发生','生活','学生']},{c:'甥',p:'shēng',w:['外甥']},{c:'用',p:'yòng',w:['利用','用户','采用']},{c:'甩',p:'shuǎi',w:['甩掉','甩到','甩出']},{c:'甫',p:'fǔ',w:['杜甫']},{c:'由',p:'yóu',w:['由于','自由','由是']},{c:'甲',p:'jiǎ',w:['装甲','指甲','甲板']},{c:'申',p:'shēn',w:['申请','申报','申诉']},{c:'男',p:'nán',w:['男人','男子','男性']},{c:'甸',p:'diān',w:['缅甸','伊甸','草甸']},{c:'画',p:'huà',w:['漫画','动画','画面']},{c:'畅',p:'chàng',w:['畅销','流畅','畅通']},{c:'界',p:'jiè',w:['世界','边界','外界']},{c:'畏',p:'wèi',w:['畏惧','敬畏','无畏']},{c:'畔',p:'pàn',w:['河畔','湖畔']},{c:'留',p:'liú',w:['留下','保留','留在']},{c:'畜',p:'chù',w:['牲畜','畜生','畜牧']},{c:'略',p:'lüè',w:['战略','策略','忽略']},{c:'畦',p:'qí',w:['畦田','菜畦','阳畦']},{c:'番',p:'fān',w:['一番','番茄','番号']},{c:'畴',p:'chóu',w:['范畴']},{c:'畸',p:'jī',w:['畸形']},{c:'疆',p:'jiāng',w:['新疆','边疆','疆域']},{c:'疏',p:'shū',w:['疏散','疏忽','疏远']},{c:'疑',p:'yí',w:['怀疑','质疑','无疑']},{c:'疗',p:'liáo',w:['医疗','治疗','疗法']},{c:'疙',p:'gē',w:['疙瘩']},{c:'疚',p:'jiù',w:['内疚','愧疚']},{c:'疟',p:'nüè',w:['抗疟','疟子','疟虫']},{c:'疤',p:'bā',w:['伤疤','疤痕']},{c:'疫',p:'yì',w:['疫情','疫苗','免疫']},{c:'疮',p:'chuāng',w:['口疮','生疮','疮口']},{c:'疯',p:'fēng',w:['疯狂','疯子','发疯']},{c:'疲',p:'pí',w:['疲劳','疲惫','疲倦']},{c:'疹',p:'zhěn',w:['麻疹']},{c:'疼',p:'téng',w:['头疼','心疼','疼爱']},{c:'疾',p:'jí',w:['疾病','残疾','疟疾']},{c:'病',p:'bìng',w:['疾病','病人','病例']},{c:'症',p:'zhèng',w:['症状','症结','重症']},{c:'痊',p:'quán',w:['痊愈']},{c:'痒',p:'yǎng',w:['痒痒']},{c:'痕',p:'hén',w:['痕迹','伤痕','裂痕']},{c:'痘',p:'dòu',w:['痘痘']},{c:'痛',p:'tòng',w:['痛苦','疼痛','头痛']},{c:'痢',p:'lì',w:['下痢','拉痢','白痢']},{c:'痪',p:'huàn',w:['瘫痪']},{c:'痰',p:'tán',w:['化痰','痰气','吐痰']},{c:'痴',p:'chī',w:['白痴','痴迷','痴呆']},{c:'痹',p:'bì',w:['麻痹']},{c:'瘟',p:'wēn',w:['瘟疫']},{c:'瘤',p:'liú',w:['肿瘤']},{c:'瘦',p:'shòu',w:['多瘦','好瘦','很瘦']},{c:'瘩',p:'dā',w:['疙瘩']},{c:'瘪',p:'biě',w:['干瘪','瘪三','瘪嘴']},{c:'瘫',p:'tān',w:['瘫痪']},{c:'瘸',p:'qué',w:['瘸子','瘸脚','瘸腿']},{c:'瘾',p:'yǐn',w:['上瘾','过瘾','成瘾']},{c:'癞',p:'lài',w:['癞头','癞子','癞瓜']},{c:'癣',p:'xuǎn',w:['牛皮癣']},{c:'登',p:'dēng',w:['登记','登陆','登上']},{c:'白',p:'bái',w:['明白','白色','白人']},{c:'百',p:'bǎi',w:['百度','百万','百姓']},{c:'皂',p:'zào',w:['肥皂']},{c:'的',p:'de',w:['真的','的话','目的']},{c:'皆',p:'jiē',w:['皆知','皆准','皆空']},{c:'皇',p:'huáng',w:['皇帝','皇家','皇后']},{c:'皮',p:'pí',w:['皮肤','皮革','皮带']},{c:'皱',p:'zhòu',w:['皱纹']},{c:'皿',p:'mǐn',w:['器皿']},{c:'盅',p:'zhōng',w:['一盅','两盅','盅子']},{c:'盆',p:'pén',w:['盆地','一盆','盆栽']},{c:'盈',p:'yíng',w:['盈利','盈余','轻盈']},{c:'益',p:'yì',w:['利益','权益','日益']},{c:'盏',p:'zhǎn',w:['一盏']},{c:'盐',p:'yán',w:['食盐','盐城','大盐']},{c:'监',p:'jiān',w:['监督','监管','监控']},{c:'盒',p:'hé',w:['盒子','一盒','礼盒']},{c:'盔',p:'kuī',w:['头盔','盔甲']},{c:'盖',p:'gài',w:['覆盖','涵盖','掩盖']},{c:'盗',p:'dào',w:['海盗','强盗','盗版']},{c:'盘',p:'pán',w:['键盘','地盘','硬盘']},{c:'盛',p:'shèng',w:['盛大','盛行','盛会']},{c:'盟',p:'méng',w:['联盟','欧盟','加盟']},{c:'盯',p:'dīng',w:['盯上','盯人','盯问']},{c:'盲',p:'máng',w:['盲目','文盲','盲人']},{c:'直',p:'zhí',w:['一直','直接','直到']},{c:'相',p:'xiāng',w:['相关','相信','相当']},{c:'盹',p:'dǔn',w:['打盹','盹儿','醒盹']},{c:'盼',p:'pàn',w:['盼望','期盼']},{c:'盾',p:'dùn',w:['矛盾','盾牌','后盾']},{c:'省',p:'shěng',w:['全省','省份','省级']},{c:'眉',p:'méi',w:['眉毛','美眉','眉头']},{c:'看',p:'kàn',w:['看到','看看','看见']},{c:'真',p:'zhēn',w:['真的','真正','真是']},{c:'眠',p:'mián',w:['睡眠','催眠','失眠']},{c:'眨',p:'zhǎ',w:['眨眼']},{c:'眯',p:'mī',w:['眯上','眯住','眯着']},{c:'眶',p:'kuàng',w:['眼眶']},{c:'眷',p:'juàn',w:['眷顾','眷属','家眷']},{c:'眼',p:'yǎn',w:['眼睛','眼前','眼泪']},{c:'着',p:'zhe',w:['为着','随着','看着']},{c:'睁',p:'zhēng',w:['睁开']},{c:'睛',p:'jīng',w:['眼睛']},{c:'睡',p:'shuì',w:['睡觉','睡眠','睡着']},{c:'督',p:'dū',w:['监督','总督','基督']},{c:'睦',p:'mù',w:['和睦']},{c:'睬',p:'cǎi',w:['理睬']},{c:'睹',p:'dǔ',w:['目睹']},{c:'瞄',p:'miáo',w:['瞄准']},{c:'瞎',p:'xiā',w:['瞎子','瞎说','瞎到']},{c:'瞒',p:'mán',w:['隐瞒']},{c:'瞧',p:'qiáo',w:['瞧瞧','小瞧','瞧出']},{c:'瞪',p:'dèng',w:['瞪起','瞪住','瞪视']},{c:'瞬',p:'shùn',w:['瞬间','瞬时','一瞬']},{c:'瞭',p:'liǎo',w:['瞭望']},{c:'瞳',p:'tóng',w:['瞳孔']},{c:'瞻',p:'zhān',w:['前瞻','瞻仰']},{c:'矗',p:'chù',w:['矗立']},{c:'矛',p:'máo',w:['矛盾','矛头']},{c:'矢',p:'shǐ',w:['矢量']},{c:'知',p:'zhī',w:['知道','知识','通知']},{c:'矩',p:'jǔ',w:['规矩','矩阵','矩形']},{c:'矫',p:'jiǎo',w:['矫正','矫情']},{c:'短',p:'duǎn',w:['短期','短片','短暂']},{c:'矮',p:'ǎi',w:['矮子','矮小','很矮']},{c:'矾',p:'fán',w:['明矾','白矾','红矾']},{c:'矿',p:'kuàng',w:['煤矿','矿产','矿业']},{c:'码',p:'mǎ',w:['密码','代码','号码']},{c:'砂',p:'shā',w:['砂石','砂岩','朱砂']},{c:'砌',p:'qì',w:['堆砌']},{c:'砍',p:'kǎn',w:['砍掉','砍伐','砍到']},{c:'研',p:'yán',w:['研究','研发','科研']},{c:'砖',p:'zhuān',w:['瓷砖','砖头','金砖']},{c:'砚',p:'yàn',w:['心砚','砚台','砚山']},{c:'砰',p:'pēng',w:['砰然','砰砰']},{c:'破',p:'pò',w:['破坏','突破','打破']},{c:'砸',p:'zá',w:['搞砸','砸出','打砸']},{c:'砾',p:'lì',w:['瓦砾']},{c:'础',p:'chǔ',w:['基础']},{c:'硅',p:'guī',w:['硅谷','硅胶']},{c:'硕',p:'shuò',w:['硕士','硕大','华硕']},{c:'硝',p:'xiāo',w:['硝酸']},{c:'硫',p:'liú',w:['硫酸','硫磺','硫化']},{c:'硬',p:'yìng',w:['硬件','硬币','强硬']},{c:'确',p:'què',w:['确定','确实','正确']},{c:'硼',p:'péng',w:['含硼','硼铁','硼肥']},{c:'碉',p:'diāo',w:['碉堡']},{c:'碌',p:'lù',w:['忙碌']},{c:'碍',p:'ài',w:['障碍','阻碍','妨碍']},{c:'碎',p:'suì',w:['碎片','粉碎','破碎']},{c:'碑',p:'bēi',w:['墓碑','石碑','口碑']},{c:'碗',p:'wǎn',w:['一碗','饭碗','大碗']},{c:'碘',p:'diǎn',w:['加碘','化碘','碘值']},{c:'碟',p:'dié',w:['飞碟','光碟','大碟']},{c:'碧',p:'bì',w:['碧水','金碧','碧云']},{c:'碰',p:'pèng',w:['碰到','碰撞','碰上']},{c:'碱',p:'jiǎn',w:['碱性','酸碱']},{c:'碳',p:'tàn',w:['高碳','定碳','碳酸']},{c:'碴',p:'chá',w:['找碴','石碴','碴儿']},{c:'碾',p:'niǎn',w:['碾压']},{c:'磁',p:'cí',w:['磁场','磁带','电磁']},{c:'磅',p:'bàng',w:['重磅','一磅','地磅']},{c:'磕',p:'kē',w:['磕头']},{c:'磨',p:'mó',w:['折磨','琢磨','磨损']},{c:'磷',p:'lín',w:['磷酸']},{c:'磺',p:'huáng',w:['硫磺']},{c:'礁',p:'jiāo',w:['礁石','岛礁']},{c:'示',p:'shì',w:['表示','显示','展示']},{c:'礼',p:'lǐ',w:['礼物','婚礼','礼拜']},{c:'社',p:'shè',w:['社会','社区','社交']},{c:'祈',p:'qí',w:['祈祷','祈求','祈福']},{c:'祖',p:'zǔ',w:['祖国','祖先','祖父']},{c:'祝',p:'zhù',w:['庆祝','祝福','祝贺']},{c:'神',p:'shén',w:['精神','神秘','女神']},{c:'祟',p:'suì',w:['作祟']},{c:'祠',p:'cí',w:['祠堂']},{c:'祥',p:'xiáng',w:['吉祥','不祥','祥和']},{c:'票',p:'piào',w:['投票','股票','选票']},{c:'祭',p:'jì',w:['祭司','祭坛','祭祖']},{c:'祷',p:'dǎo',w:['祈祷','祷告']},{c:'祸',p:'huò',w:['车祸','祸害','灾祸']},{c:'禀',p:'bǐng',w:['回禀','天禀','禀受']},{c:'禁',p:'jìn',w:['禁止','不禁','监禁']},{c:'福',p:'fú',w:['福利','幸福','福建']},{c:'离',p:'lí',w:['离开','距离','脱离']},{c:'禽',p:'qín',w:['禽兽','家禽','畜禽']},{c:'秀',p:'xiù',w:['优秀','秀才','作秀']},{c:'私',p:'sī',w:['私人','隐私','走私']},{c:'秃',p:'tū',w:['秃头','秃鹰']},{c:'秆',p:'gǎn',w:['秆子','空秆','草秆']},{c:'秉',p:'bǐng',w:['秉持','秉承']},{c:'秋',p:'qiū',w:['春秋','秋天','秋季']},{c:'种',p:'zhǒng',w:['这种','一种','各种']},{c:'科',p:'kē',w:['科技','科学','学科']},{c:'秒',p:'miǎo',w:['三秒','万秒','两秒']},{c:'秕',p:'bǐ',w:['寒秕','秕子','秕政']},{c:'秘',p:'mì',w:['秘密','秘书','神秘']},{c:'租',p:'zū',w:['出租','租金','房租']},{c:'秤',p:'chèng',w:['天秤座']},{c:'秦',p:'qín',w:['先秦','秦国','秦汉']},{c:'秧',p:'yāng',w:['拉秧','插秧','烂秧']},{c:'秩',p:'zhì',w:['秩序']},{c:'秫',p:'shú',w:['秫米','秫秸']},{c:'积',p:'jī',w:['面积','积极','积累']},{c:'称',p:'chēng',w:['称为','名称','简称']},{c:'秸',p:'jiē',w:['麦秸','秸杆','豆秸']},{c:'移',p:'yí',w:['移民','移动','转移']},{c:'秽',p:'huì',w:['淫秽','污秽']},{c:'稀',p:'xī',w:['稀有','稀少','稀缺']},{c:'程',p:'chéng',w:['过程','工程','程度']},{c:'稍',p:'shāo',w:['稍微','稍后','稍稍']},{c:'税',p:'shuì',w:['税收','关税','税务']},{c:'稚',p:'zhì',w:['幼稚']},{c:'稠',p:'chóu',w:['稠密']},{c:'稳',p:'wěn',w:['稳定','平稳','稳步']},{c:'稻',p:'dào',w:['水稻','稻草','稻田']},{c:'稼',p:'jià',w:['庄稼']},{c:'稽',p:'jī',w:['滑稽','稽查','稽核']},{c:'稿',p:'gǎo',w:['投稿','手稿','稿件']},{c:'穆',p:'mù',w:['穆勒','穆萨']},{c:'穗',p:'suì',w:['三穗']},{c:'穴',p:'xué',w:['洞穴','巢穴','墓穴']},{c:'究',p:'jiū',w:['研究','究竟','追究']},{c:'穷',p:'qióng',w:['贫穷','穷人','无穷']},{c:'空',p:'kōng',w:['空间','航空','空气']},{c:'穿',p:'chuān',w:['穿着','穿越','穿过']},{c:'突',p:'tū',w:['突然','冲突','突破']},{c:'窃',p:'qiè',w:['盗窃','窃取','窃听']},{c:'窄',p:'zhǎi',w:['狭窄']},{c:'窍',p:'qiào',w:['诀窍','窍门','开窍']},{c:'窑',p:'yáo',w:['出窑','名窑','均窑']},{c:'窒',p:'zhì',w:['窒息']},{c:'窖',p:'jiào',w:['入窖','地窖','水窖']},{c:'窗',p:'chuāng',w:['窗口','窗户','窗外']},{c:'窘',p:'jiǒng',w:['窘境','窘迫']},{c:'窜',p:'cuàn',w:['逃窜','流窜']},{c:'窝',p:'wō',w:['被窝','窝点','老窝']},{c:'窟',p:'kū',w:['石窟','洞窟']},{c:'窥',p:'kuī',w:['窥探','窥视']},{c:'窿',p:'lóng',w:['窟窿']},{c:'竖',p:'shù',w:['竖立','竖起']},{c:'站',p:'zhàn',w:['网站','车站','分站']},{c:'竞',p:'jìng',w:['竞争','竞选','竞赛']},{c:'竟',p:'jìng',w:['毕竟','竟然','究竟']},{c:'章',p:'zhāng',w:['文章','宪章','勋章']},{c:'竣',p:'jùn',w:['竣工']},{c:'童',p:'tóng',w:['儿童','童年','童话']},{c:'竭',p:'jié',w:['竭力','枯竭','衰竭']},{c:'端',p:'duān',w:['极端','高端','终端']},{c:'竿',p:'gān',w:['竹竿']},{c:'笆',p:'bā',w:['篱笆']},{c:'笋',p:'sǔn',w:['东笋','毛笋','海笋']},{c:'笑',p:'xiào',w:['微笑','笑话','可笑']},{c:'笔',p:'bǐ',w:['笔者','笔记','一笔']},{c:'笙',p:'shēng',w:['吹笙','笙歌','胡笙']},{c:'笛',p:'dí',w:['笛子']},{c:'笤',p:'tiáo',w:['笤帚']},{c:'符',p:'fú',w:['符合','符号','不符']},{c:'笨',p:'bèn',w:['笨蛋','笨拙','笨重']},{c:'第',p:'dì',w:['第一','第二','第三']},{c:'笼',p:'lóng',w:['灯笼','笼罩','笼子']},{c:'等',p:'děng',w:['不等','一等','等等']},{c:'筋',p:'jīn',w:['钢筋','脑筋']},{c:'筏',p:'fá',w:['木筏']},{c:'筐',p:'kuāng',w:['一筐','两筐','半筐']},{c:'筑',p:'zhù',w:['建筑','构筑','修筑']},{c:'筒',p:'tǒng',w:['话筒']},{c:'答',p:'dá',w:['回答','答案','答应']},{c:'策',p:'cè',w:['政策','策略','决策']},{c:'筛',p:'shāi',w:['筛选','筛查']},{c:'筝',p:'zhēng',w:['风筝']},{c:'筷',p:'kuài',w:['筷子']},{c:'筹',p:'chóu',w:['筹备','统筹','筹划']},{c:'签',p:'qiān',w:['签署','签订','签名']},{c:'简',p:'jiǎn',w:['简单','简直','简称']},{c:'箍',p:'gū',w:['加箍','卡箍','头箍']},{c:'箕',p:'jī',w:['不箕','箕门','斗箕']},{c:'算',p:'suàn',w:['计算','打算','预算']},{c:'管',p:'guǎn',w:['管理','尽管','不管']},{c:'箩',p:'luó',w:['一箩','平箩','箩北']},{c:'箫',p:'xiāo',w:['吹箫']},{c:'箭',p:'jiàn',w:['火箭','射箭','弓箭']},{c:'箱',p:'xiāng',w:['冰箱','邮箱','箱子']},{c:'篇',p:'piān',w:['一篇','短篇','长篇']},{c:'篓',p:'lǒu',w:['一篓','两篓','六篓']},{c:'篙',p:'gāo',w:['撑篙','竹篙','篙头']},{c:'篡',p:'cuàn',w:['篡改']},{c:'篮',p:'lán',w:['篮球','篮板','摇篮']},{c:'篱',p:'lí',w:['篱笆']},{c:'篷',p:'péng',w:['帐篷','斗篷']},{c:'簇',p:'cù',w:['一簇','上簇','簇团']},{c:'簸',p:'bǒ',w:['颠簸']},{c:'簿',p:'bù',w:['相簿']},{c:'籍',p:'jí',w:['书籍','国籍','外籍']},{c:'类',p:'lèi',w:['人类','类似','类型']},{c:'籽',p:'zǐ',w:['无籽','种籽','籽种']},{c:'粉',p:'fěn',w:['粉丝','奶粉','粉碎']},{c:'粒',p:'lì',w:['粒子','颗粒','一粒']},{c:'粗',p:'cū',w:['粗暴','粗鲁','粗糙']},{c:'粘',p:'zhān',w:['粘土','粘贴','粘性']},{c:'粟',p:'sù',w:['粟子','粟米','粟类']},{c:'粤',p:'yuè',w:['粤语']},{c:'粥',p:'zhōu',w:['打粥','米粥','早粥']},{c:'粪',p:'fèn',w:['粪便']},{c:'粮',p:'liáng',w:['粮食','粮仓','口粮']},{c:'粱',p:'liáng',w:['高粱']},{c:'粹',p:'cuì',w:['纯粹','纳粹','民粹']},{c:'精',p:'jīng',w:['精神','精彩','精力']},{c:'糊',p:'hú',w:['模糊','糊涂','含糊']},{c:'糕',p:'gāo',w:['糟糕','蛋糕','糕点']},{c:'糖',p:'táng',w:['糖果','多糖','糖分']},{c:'糙',p:'cāo',w:['粗糙']},{c:'糜',p:'mí',w:['糜烂']},{c:'糟',p:'zāo',w:['糟糕','更糟','很糟']},{c:'糠',p:'kāng',w:['米糠','糠花','糠油']},{c:'糯',p:'nuò',w:['糯米']},{c:'系',p:'xì',w:['关系','系统','系列']},{c:'紊',p:'wěn',w:['紊乱']},{c:'素',p:'sù',w:['因素','素质','元素']},{c:'索',p:'suǒ',w:['探索','搜索','线索']},{c:'紧',p:'jǐn',w:['紧张','紧急','赶紧']},{c:'紫',p:'zǐ',w:['紫色','紫菜','紫外']},{c:'累',p:'lèi',w:['积累','累计','累积']},{c:'絮',p:'xù',w:['花絮']},{c:'繁',p:'fán',w:['繁荣','频繁','繁殖']},{c:'纠',p:'jiū',w:['纠纷','纠正','纠缠']},{c:'红',p:'hóng',w:['红色','红军','红旗']},{c:'纤',p:'xiān',w:['纤维','光纤','化纤']},{c:'约',p:'yuē',w:['纽约','大约','条约']},{c:'级',p:'jí',w:['高级','超级','升级']},{c:'纪',p:'jì',w:['世纪','纪念','纪录']},{c:'纫',p:'rèn',w:['缝纫']},{c:'纬',p:'wěi',w:['北纬','纬度','经纬']},{c:'纯',p:'chún',w:['单纯','纯粹','纯洁']},{c:'纱',p:'shā',w:['婚纱','面纱','纱布']},{c:'纲',p:'gāng',w:['纲领','大纲','纲要']},{c:'纳',p:'nà',w:['纳入','纳粹','容纳']},{c:'纵',p:'zòng',w:['操纵','纵然','纵横']},{c:'纷',p:'fēn',w:['纷纷','纠纷','纷争']},{c:'纸',p:'zhǐ',w:['报纸','纸币','图纸']},{c:'纹',p:'wén',w:['指纹','纹身','条纹']},{c:'纺',p:'fǎng',w:['纺织']},{c:'纽',p:'niǔ',w:['纽约','枢纽','纽带']},{c:'线',p:'xiàn',w:['路线','在线','线路']},{c:'练',p:'liàn',w:['训练','教练','练习']},{c:'组',p:'zǔ',w:['组织','组成','小组']},{c:'绅',p:'shēn',w:['绅士','乡绅']},{c:'细',p:'xì',w:['详细','细节','细胞']},{c:'织',p:'zhī',w:['组织','纺织','编织']},{c:'终',p:'zhōng',w:['最终','终于','始终']},{c:'绊',p:'bàn',w:['绊倒']},{c:'绍',p:'shào',w:['介绍','绍兴','袁绍']},{c:'绎',p:'yì',w:['演绎']},{c:'经',p:'jīng',w:['已经','经济','经过']},{c:'绑',p:'bǎng',w:['绑架','捆绑','绑定']},{c:'绒',p:'róng',w:['绒毛']},{c:'结',p:'jié',w:['结果','结束','结构']},{c:'绕',p:'rào',w:['围绕','环绕','绕过']},{c:'绘',p:'huì',w:['绘画','描绘','绘制']},{c:'给',p:'gěi',w:['给与','给予','交给']},{c:'络',p:'luò',w:['网络','联络','脉络']},{c:'绝',p:'jué',w:['绝对','拒绝','绝不']},{c:'绞',p:'jiǎo',w:['绞刑']},{c:'统',p:'tǒng',w:['系统','总统','传统']},{c:'绢',p:'juàn',w:['原绢','手绢','绢子']},{c:'绣',p:'xiù',w:['刺绣','锦绣']},{c:'继',p:'jì',w:['继续','继承','相继']},{c:'绩',p:'jì',w:['成绩','业绩','政绩']},{c:'绪',p:'xù',w:['情绪','光绪','思绪']},{c:'续',p:'xù',w:['继续','持续','连续']},{c:'绰',p:'chuò',w:['绰号']},{c:'绳',p:'shéng',w:['绳子','绳索','冲绳']},{c:'维',p:'wéi',w:['维护','维持','思维']},{c:'绵',p:'mián',w:['海绵','绵羊','绵阳']},{c:'绷',p:'bēng',w:['绷带','紧绷']},{c:'绸',p:'chóu',w:['丝绸']},{c:'综',p:'zōng',w:['综合','综艺','综述']},{c:'绽',p:'zhàn',w:['绽放','破绽']},{c:'绿',p:'lǜ',w:['绿色','绿化','绿地']},{c:'缀',p:'zhuì',w:['点缀','后缀']},{c:'缅',p:'miǎn',w:['缅甸','缅怀']},{c:'缆',p:'lǎn',w:['电缆','缆车','光缆']},{c:'缎',p:'duàn',w:['假缎','库缎','缎子']},{c:'缓',p:'huǎn',w:['缓慢','缓解','缓和']},{c:'缔',p:'dì',w:['取缔','缔结','缔造']},{c:'缕',p:'lǚ',w:['一缕']},{c:'编',p:'biān',w:['编辑','编制','编号']},{c:'缘',p:'yuán',w:['边缘','缘故','无缘']},{c:'缚',p:'fù',w:['束缚']},{c:'缝',p:'fèng',w:['裂缝','缝隙','裁缝']},{c:'缠',p:'chán',w:['纠缠','缠身','缠绕']},{c:'缤',p:'bīn',w:['缤纷']},{c:'缨',p:'yīng',w:['红缨','缨子','请缨']},{c:'缩',p:'suō',w:['缩短','缩小','压缩']},{c:'缭',p:'liáo',w:['缭绕']},{c:'缰',p:'jiāng',w:['收缰','脱缰','缰绳']},{c:'缴',p:'jiǎo',w:['缴纳','缴费','缴获']},{c:'缸',p:'gāng',w:['浴缸']},{c:'缺',p:'quē',w:['缺乏','缺少','缺点']},{c:'罐',p:'guàn',w:['罐头','罐子','一罐']},{c:'罕',p:'hǎn',w:['罕见','稀罕','罕有']},{c:'罗',p:'luó',w:['罗马','保罗','罗斯']},{c:'罚',p:'fá',w:['惩罚','处罚','罚款']},{c:'罢',p:'bà',w:['罢了','罢工','罢免']},{c:'罩',p:'zhào',w:['口罩','笼罩','胸罩']},{c:'罪',p:'zuì',w:['犯罪','罪犯','罪行']},{c:'置',p:'zhì',w:['位置','设置','装置']},{c:'署',p:'shǔ',w:['签署','部署','总署']},{c:'美',p:'měi',w:['美国','美元','美丽']},{c:'羔',p:'gāo',w:['羔羊']},{c:'羞',p:'xiū',w:['羞辱','害羞','羞耻']},{c:'羡',p:'xiàn',w:['羡慕']},{c:'群',p:'qún',w:['群众','一群','群体']},{c:'羹',p:'gēng',w:['肉羹','调羹','羹饭']},{c:'翁',p:'wēng',w:['富翁','老翁']},{c:'翅',p:'chì',w:['翅膀']},{c:'翎',p:'líng',w:['翎儿','翎子','翎毛']},{c:'翔',p:'xiáng',w:['飞翔','刘翔','翔实']},{c:'翘',p:'qiào',w:['好翘','翘上','翘下']},{c:'翠',p:'cuì',w:['翠微','翠绿','翠鸟']},{c:'翩',p:'piān',w:['翩然','联翩','连翩']},{c:'翰',p:'hàn',w:['约翰','翰林']},{c:'翻',p:'fān',w:['翻译','推翻','翻身']},{c:'翼',p:'yì',w:['左翼','右翼','机翼']},{c:'耀',p:'yào',w:['荣耀','闪耀','炫耀']},{c:'老',p:'lǎo',w:['老师','老婆','老板']},{c:'考',p:'kǎo',w:['考虑','考试','参考']},{c:'者',p:'zhě',w:['记者','或者','作者']},{c:'而',p:'ér',w:['而且','然而','而是']},{c:'耍',p:'shuǎ',w:['玩耍','好耍','耍把']},{c:'耐',p:'nài',w:['耐心','忍耐','能耐']},{c:'耕',p:'gēng',w:['耕地','耕作','耕种']},{c:'耗',p:'hào',w:['消耗','耗费','耗尽']},{c:'耘',p:'yún',w:['耕耘']},{c:'耙',p:'bà',w:['耙地','耙开','耙子']},{c:'耸',p:'sǒng',w:['耸动','高耸']},{c:'耻',p:'chǐ',w:['耻辱','无耻','羞耻']},{c:'耽',p:'dān',w:['耽误','耽搁']},{c:'耿',p:'gěng',w:['耿直','耿饼','耿介']},{c:'聂',p:'niè',w:['聂远','聂耳','聂荣']},{c:'聊',p:'liáo',w:['聊天','无聊','聊聊']},{c:'聋',p:'lóng',w:['聋人','聋子','聋儿']},{c:'职',p:'zhí',w:['职业','职务','职工']},{c:'联',p:'lián',w:['联系','联合','苏联']},{c:'聘',p:'pìn',w:['招聘','聘请','聘用']},{c:'聚',p:'jù',w:['聚集','聚会','聚焦']},{c:'聪',p:'cōng',w:['聪明','聪慧']},{c:'肃',p:'sù',w:['严肃','甘肃','肃清']},{c:'肄',p:'yì',w:['肄业','肄习']},{c:'肆',p:'sì',w:['大肆','肆虐','肆意']},{c:'肉',p:'ròu',w:['肌肉','牛肉','猪肉']},{c:'肋',p:'lē',w:['肋骨']},{c:'肌',p:'jī',w:['肌肉','肌肤','腹肌']},{c:'肖',p:'xiào',w:['肖像','肖恩','不肖']},{c:'肘',p:'zhǒu',w:['手肘']},{c:'肚',p:'dù',w:['肚子','肚皮','肚脐']},{c:'肛',p:'gāng',w:['肛门','肛交']},{c:'肝',p:'gān',w:['肝脏','肝炎','心肝']},{c:'肠',p:'cháng',w:['肠道','香肠','肠胃']},{c:'股',p:'gǔ',w:['股份','股东','股票']},{c:'肢',p:'zhī',w:['肢体','四肢','截肢']},{c:'肤',p:'fū',w:['皮肤','肌肤','肤色']},{c:'肥',p:'féi',w:['减肥','合肥','肥料']},{c:'肩',p:'jiān',w:['肩膀','肩上','肩负']},{c:'肪',p:'fáng',w:['脂肪']},{c:'肮',p:'āng',w:['肮脏']},{c:'肯',p:'kěn',w:['肯定','不肯','林肯']},{c:'育',p:'yù',w:['教育','体育','发育']},{c:'肴',p:'yáo',w:['菜肴','佳肴']},{c:'肺',p:'fèi',w:['肺炎','肺部','心肺']},{c:'肾',p:'shèn',w:['肾脏']},{c:'肿',p:'zhǒng',w:['肿胀','水肿','囊肿']},{c:'胀',p:'zhàng',w:['膨胀','通胀','肿胀']},{c:'胁',p:'xié',w:['威胁','胁迫']},{c:'胃',p:'wèi',w:['胃口','肠胃','反胃']},{c:'胆',p:'dǎn',w:['大胆','胆子','胆小']},{c:'背',p:'bèi',w:['背景','背后','违背']},{c:'胎',p:'tāi',w:['轮胎','胎儿','堕胎']},{c:'胖',p:'pàng',w:['胖子','肥胖','很胖']},{c:'胚',p:'pēi',w:['胚胎']},{c:'胜',p:'shèng',w:['胜利','战胜','获胜']},{c:'胞',p:'bāo',w:['细胞','同胞','侨胞']},{c:'胡',p:'hú',w:['胡子','胡同','胡说']},{c:'胧',p:'lóng',w:['朦胧']},{c:'胯',p:'kuà',w:['胯下']},{c:'胰',p:'yí',w:['胰岛素']},{c:'胳',p:'gē',w:['胳膊']},{c:'胶',p:'jiāo',w:['橡胶','塑胶','胶囊']},{c:'胸',p:'xiōng',w:['胸部','胸口','胸前']},{c:'能',p:'néng',w:['可能','不能','能够']},{c:'脂',p:'zhī',w:['脂肪','油脂','树脂']},{c:'脆',p:'cuì',w:['脆弱','乾脆','干脆']},{c:'脉',p:'mài',w:['山脉','脉冲','动脉']},{c:'脊',p:'jí',w:['脊椎','脊髓','脊梁']},{c:'脏',p:'zàng',w:['心脏','肮脏','肾脏']},{c:'脐',p:'qí',w:['肚脐']},{c:'脑',p:'nǎo',w:['电脑','脑袋','大脑']},{c:'脓',p:'nóng',w:['出脓','化脓','生脓']},{c:'脖',p:'bó',w:['脖子']},{c:'脚',p:'jiǎo',w:['脚步','脚下','脚本']},{c:'脯',p:'pú',w:['果脯','肉脯','胸脯']},{c:'脱',p:'tuō',w:['脱离','摆脱','逃脱']},{c:'脸',p:'liǎn',w:['脸上','丢脸','要脸']},{c:'脾',p:'pí',w:['脾气']},{c:'腊',p:'là',w:['希腊','腊肉']},{c:'腋',p:'yè',w:['腋毛','腋下']},{c:'腌',p:'yān',w:['腌制']},{c:'腐',p:'fǔ',w:['腐败','豆腐','腐蚀']},{c:'腔',p:'qiāng',w:['口腔','腔调','满腔']},{c:'腕',p:'wàn',w:['手腕','腕表']},{c:'腥',p:'xīng',w:['血腥']},{c:'腮',p:'sāi',w:['两腮','腮帮','腮红']},{c:'腰',p:'yāo',w:['腰带','弯腰','撑腰']},{c:'腹',p:'fù',w:['腹部','腹泻','腹地']},{c:'腺',p:'xiàn',w:['乳腺']},{c:'腻',p:'nì',w:['细腻','油腻','猫腻']},{c:'腾',p:'téng',w:['腾讯','折腾','沸腾']},{c:'腿',p:'tuǐ',w:['大腿','双腿','火腿']},{c:'膀',p:'bǎng',w:['肩膀','翅膀']},{c:'膊',p:'bó',w:['胳膊']},{c:'膏',p:'gāo',w:['牙膏','石膏','唇膏']},{c:'膘',p:'biāo',w:['上膘','掉膘','膘情']},{c:'膛',p:'táng',w:['胸膛']},{c:'膜',p:'mó',w:['面膜','薄膜','膜拜']},{c:'膝',p:'xī',w:['膝盖']},{c:'膨',p:'péng',w:['膨胀']},{c:'膳',p:'shàn',w:['膳食']},{c:'臀',p:'tún',w:['臀部','臀鳍']},{c:'臂',p:'bì',w:['手臂','双臂','右臂']},{c:'臊',p:'sāo',w:['害臊','怕臊','毛臊']},{c:'臣',p:'chén',w:['大臣','功臣','车臣']},{c:'自',p:'zì',w:['自己','自由','来自']},{c:'臭',p:'chòu',w:['恶臭','臭味','发臭']},{c:'至',p:'zhì',w:['甚至','至少','至今']},{c:'致',p:'zhì',w:['导致','一致','大致']},{c:'臼',p:'jiù',w:['科臼','石臼','脱臼']},{c:'舀',p:'yǎo',w:['舀儿','舀出','舀去']},{c:'舅',p:'jiù',w:['舅舅','舅妈']},{c:'舆',p:'yú',w:['舆论','舆情']},{c:'舌',p:'shé',w:['舌头','饶舌','喉舌']},{c:'舍',p:'shě',w:['宿舍','舍得','舍弃']},{c:'舒',p:'shū',w:['舒服','舒适','舒畅']},{c:'舔',p:'tiǎn',w:['舔着','舔吃','舔掉']},{c:'舞',p:'wǔ',w:['舞台','舞蹈','跳舞']},{c:'航',p:'háng',w:['航空','航班','航线']},{c:'般',p:'bān',w:['一般','般的','这般']},{c:'舰',p:'jiàn',w:['舰队','军舰','战舰']},{c:'舱',p:'cāng',w:['机舱','舱门','船舱']},{c:'舵',p:'duò',w:['总舵','把舵','舵手']},{c:'舶',p:'bó',w:['船舶']},{c:'舷',p:'xián',w:['干舷','舷外','舷门']},{c:'船',p:'chuán',w:['船只','船长','船上']},{c:'艇',p:'tǐng',w:['潜艇','舰艇','游艇']},{c:'艘',p:'sōu',w:['一艘','两艘','三艘']},{c:'良',p:'liáng',w:['良好','不良','优良']},{c:'艰',p:'jiān',w:['艰难','艰苦','艰辛']},{c:'色',p:'sè',w:['角色','特色','颜色']},{c:'艳',p:'yàn',w:['鲜艳','艳遇','艳舞']},{c:'艺',p:'yì',w:['艺术','工艺','文艺']},{c:'艾',p:'ài',w:['艾伦','艾比','艾地']},{c:'节',p:'jié',w:['节目','细节','情节']},{c:'芋',p:'yù',w:['山芋','水芋','海芋']},{c:'芍',p:'sháo',w:['白芍','芍药','赤芍']},{c:'芒',p:'máng',w:['光芒','芒果','锋芒']},{c:'芙',p:'fú',w:['芙蓉','拉芙','芙拉']},{c:'芜',p:'wú',w:['芜湖','荒芜','莱芜']},{c:'芝',p:'zhī',w:['芝麻','东芝','芝士']},{c:'芥',p:'jiè',w:['芥子','芥菜','草芥']},{c:'芦',p:'lú',w:['葫芦','芦苇']},{c:'芬',p:'fēn',w:['芬兰','芬芳','芬奇']},{c:'芭',p:'bā',w:['芭蕾','芭比']},{c:'芯',p:'xīn',w:['芯片']},{c:'芳',p:'fāng',w:['芳香','芬芳']},{c:'芹',p:'qín',w:['欧芹','水芹','芹菜']},{c:'芽',p:'yá',w:['萌芽','发芽','麦芽']},{c:'苇',p:'wěi',w:['芦苇']},{c:'苍',p:'cāng',w:['苍蝇','苍白','苍老']},{c:'苏',p:'sū',w:['苏联','江苏','苏州']},{c:'苔',p:'tái',w:['苔原','苔类','海苔']},{c:'苗',p:'miáo',w:['疫苗','苗族','苗栗']},{c:'苛',p:'kē',w:['苛刻','严苛']},{c:'苞',p:'bāo',w:['开苞','打苞','苞米']},{c:'苟',p:'gǒu',w:['不苟','苟且','苟从']},{c:'若',p:'ruò',w:['若干','若是','自若']},{c:'苦',p:'kǔ',w:['辛苦','苦难','艰苦']},{c:'苫',p:'shān',w:['苫块','苫子','苫布']},{c:'英',p:'yīng',w:['英国','英语','英文']},{c:'苹',p:'píng',w:['苹果']},{c:'茁',p:'zhuó',w:['茁壮']},{c:'茂',p:'mào',w:['茂名','茂盛','茂密']},{c:'范',p:'fàn',w:['范围','规范','示范']},{c:'茄',p:'jiā',w:['番茄','茄子','雪茄']},{c:'茅',p:'máo',w:['茅台','茅盾']},{c:'茉',p:'mò',w:['茉莉']},{c:'茎',p:'jīng',w:['阴茎']},{c:'茧',p:'jiǎn',w:['生茧','老茧','茧子']},{c:'茫',p:'máng',w:['迷茫','茫茫','渺茫']},{c:'茬',p:'chá',w:['找茬']},{c:'茴',p:'huí',w:['茴香']},{c:'茵',p:'yīn',w:['莱茵']},{c:'茶',p:'chá',w:['茶叶','喝茶','名茶']},{c:'茸',p:'rōng',w:['毛茸茸']},{c:'荆',p:'jīng',w:['荆州','荆棘','荆门']},{c:'荐',p:'jiàn',w:['推荐','引荐','举荐']},{c:'荒',p:'huāng',w:['荒谬','饥荒','荒唐']},{c:'荔',p:'lì',w:['荔枝']},{c:'荚',p:'jiá',w:['结荚','荚果','落荚']},{c:'荞',p:'qiáo',w:['荞麦']},{c:'荠',p:'jì',w:['荠菜','荸荠']},{c:'荡',p:'dàng',w:['动荡','震荡','荡妇']},{c:'荣',p:'róng',w:['荣誉','繁荣','荣耀']},{c:'荤',p:'hūn',w:['吃荤','开荤','五荤']},{c:'荧',p:'yíng',w:['荧光','荧幕','荧屏']},{c:'药',p:'yào',w:['药物','药品','医药']},{c:'荷',p:'hé',w:['荷兰','负荷','电荷']},{c:'荸',p:'bí',w:['荸荠']},{c:'莉',p:'lì',w:['茉莉']},{c:'莫',p:'mò',w:['莫非','莫大','莫名']},{c:'莱',p:'lái',w:['莱特','莱茵','莱恩']},{c:'莲',p:'lián',w:['莲花','花莲','金莲']},{c:'获',p:'huò',w:['获得','获取','获奖']},{c:'莹',p:'yíng',w:['光莹','清莹','冰莹']},{c:'莺',p:'yīng',w:['莺花','莺语','黄莺']},{c:'莽',p:'mǎng',w:['鲁莽','王莽']},{c:'菇',p:'gū',w:['蘑菇','香菇']},{c:'菊',p:'jú',w:['菊花']},{c:'菌',p:'jūn',w:['细菌','杆菌','真菌']},{c:'菜',p:'cài',w:['蔬菜','菜单','菜肴']},{c:'菠',p:'bō',w:['菠萝','菠菜']},{c:'菩',p:'pú',w:['菩萨','菩提']},{c:'菱',p:'líng',w:['三菱','菱形']},{c:'菲',p:'fēi',w:['菲尔','苏菲','王菲']},{c:'萄',p:'táo',w:['葡萄']},{c:'萌',p:'méng',w:['萌芽','萌生','萌发']},{c:'萍',p:'píng',w:['萍乡']},{c:'萎',p:'wēi',w:['萎缩','枯萎']},{c:'萝',p:'luó',w:['萝卜','菠萝']},{c:'萤',p:'yíng',w:['萤幕']},{c:'营',p:'yíng',w:['经营','运营','营业']},{c:'萧',p:'xiāo',w:['萧条','萧山']},{c:'萨',p:'sà',w:['菩萨','拉萨','萨拉']},{c:'落',p:'luò',w:['落实','部落','落后']},{c:'著',p:'zhù',w:['著名','著作','显著']},{c:'葛',p:'gé',w:['诸葛','纠葛','瓜葛']},{c:'葡',p:'pú',w:['葡萄','葡京']},{c:'董',p:'dǒng',w:['董事','古董']},{c:'葫',p:'hú',w:['葫芦']},{c:'葬',p:'zàng',w:['葬礼','埋葬','墓葬']},{c:'葱',p:'cōng',w:['洋葱']},{c:'葵',p:'kuí',w:['向日葵']},{c:'蒂',p:'dì',w:['蒂姆','凯蒂','阴蒂']},{c:'蒋',p:'jiǎng',w:['蒋家']},{c:'蒙',p:'méng',w:['蒙古','启蒙','蒙特']},{c:'蒜',p:'suàn',w:['大蒜']},{c:'蒲',p:'pú',w:['蒲公英']},{c:'蒸',p:'zhēng',w:['蒸汽','蒸发','蒸气']},{c:'蒿',p:'hāo',w:['蒿子','蒿本','蒿草']},{c:'蓄',p:'xù',w:['储蓄','蓄意','积蓄']},{c:'蓉',p:'róng',w:['芙蓉']},{c:'蓖',p:'bì',w:['蓖麻']},{c:'蓝',p:'lán',w:['蓝色','蓝天','蓝图']},{c:'蓬',p:'péng',w:['蓬勃','蓬莱','加蓬']},{c:'蔑',p:'miè',w:['蔑视','轻蔑','污蔑']},{c:'蔓',p:'màn',w:['蔓延']},{c:'蔗',p:'zhè',w:['甘蔗','蔗糖']},{c:'蔚',p:'wèi',w:['蔚蓝']},{c:'蔫',p:'niān',w:['发蔫','老蔫','蔫巴']},{c:'蔬',p:'shū',w:['蔬菜','蔬果']},{c:'蔼',p:'ǎi',w:['和蔼']},{c:'蔽',p:'bì',w:['屏蔽','隐蔽','遮蔽']},{c:'蕉',p:'jiāo',w:['香蕉']},{c:'蕊',p:'ruǐ',w:['光蕊','花蕊','石蕊']},{c:'蕴',p:'yùn',w:['蕴藏','蕴含','底蕴']},{c:'蕾',p:'lěi',w:['蕾丝','芭蕾']},{c:'薄',p:'báo',w:['薄弱','薄膜','薄荷']},{c:'薇',p:'wēi',w:['方薇','紫薇']},{c:'薛',p:'xuē',w:['薛城','姓薛']},{c:'薪',p:'xīn',w:['薪水','月薪','薪资']},{c:'薯',p:'shǔ',w:['薯条','红薯','薯片']},{c:'藏',p:'cáng',w:['西藏','隐藏','收藏']},{c:'藐',p:'miǎo',w:['藐视']},{c:'藕',p:'ǒu',w:['藕合','藕片','藕节']},{c:'藤',p:'téng',w:['加藤']},{c:'藻',p:'zǎo',w:['藻类','海藻']},{c:'蘑',p:'mó',w:['蘑菇']},{c:'蘸',p:'zhàn',w:['蘸上','蘸火','蘸笔']},{c:'虎',p:'hǔ',w:['老虎','雅虎','白虎']},{c:'虏',p:'lǔ',w:['俘虏']},{c:'虐',p:'nüè',w:['虐待','肆虐','暴虐']},{c:'虑',p:'lǜ',w:['考虑','焦虑','忧虑']},{c:'虚',p:'xū',w:['虚拟','虚假','虚构']},{c:'虱',p:'shī',w:['体虱','头虱','水虱']},{c:'虹',p:'hóng',w:['彩虹','虹桥','虹口']},{c:'虽',p:'suī',w:['虽然','虽说','虽不']},{c:'虾',p:'xiā',w:['龙虾','大虾','对虾']},{c:'蚀',p:'shí',w:['侵蚀']},{c:'蚁',p:'yǐ',w:['蚂蚁','白蚁']},{c:'蚂',p:'mǎ',w:['蚂蚁']},{c:'蚊',p:'wén',w:['蚊子','蚊虫']},{c:'蚌',p:'bàng',w:['蚌埠']},{c:'蚓',p:'yǐn',w:['蚯蚓']},{c:'蚕',p:'cán',w:['蚕食']},{c:'蚜',p:'yá',w:['烟蚜','菜蚜','蚜虫']},{c:'蚣',p:'gōng',w:['蜈蚣']},{c:'蚤',p:'zǎo',w:['水蚤','狗蚤','跳蚤']},{c:'蚪',p:'dǒu',w:['蝌蚪']},{c:'蚯',p:'qiū',w:['蚯蚓']},{c:'蛀',p:'zhù',w:['蛀坏','蛀洞','蛀食']},{c:'蛆',p:'qū',w:['海蛆','洞蛆','蛆虫']},{c:'蛇',p:'shé',w:['蛇行','水蛇','蛇类']},{c:'蛉',p:'líng',w:['白蛉','螟蛉','蜻蛉']},{c:'蛋',p:'dàn',w:['蛋糕','鸡蛋','笨蛋']},{c:'蛔',p:'huí',w:['蛔虫']},{c:'蛙',p:'wā',w:['青蛙']},{c:'蛛',p:'zhū',w:['蜘蛛']},{c:'蛤',p:'há',w:['蛤蟆']},{c:'蛮',p:'mán',w:['野蛮','蛮横','蛮人']},{c:'蛹',p:'yǒng',w:['动蛹','蛹期','蜂蛹']},{c:'蛾',p:'é',w:['多蛾','天蛾','白蛾']},{c:'蜀',p:'shǔ',w:['巴蜀']},{c:'蜂',p:'fēng',w:['蜂蜜','蜜蜂','蜂窝']},{c:'蜈',p:'wú',w:['蜈蚣']},{c:'蜒',p:'yán',w:['海蜒','蜻蜒']},{c:'蜓',p:'tíng',w:['蜻蜓']},{c:'蜕',p:'tuì',w:['蜕变']},{c:'蜗',p:'wō',w:['蜗牛']},{c:'蜘',p:'zhī',w:['蜘蛛']},{c:'蜜',p:'mì',w:['甜蜜','蜂蜜','蜜蜂']},{c:'蜡',p:'là',w:['蜡烛','蜡笔']},{c:'蜻',p:'qīng',w:['蜻蜓']},{c:'蝇',p:'yíng',w:['苍蝇']},{c:'蝉',p:'chán',w:['蝉联']},{c:'蝌',p:'kē',w:['蝌蚪']},{c:'蝎',p:'xiē',w:['蝎子']},{c:'蝗',p:'huáng',w:['蝗虫']},{c:'蝙',p:'biān',w:['蝙蝠']},{c:'蝠',p:'fú',w:['蝙蝠']},{c:'蝴',p:'hú',w:['蝴蝶']},{c:'蝶',p:'dié',w:['蝴蝶']},{c:'螃',p:'páng',w:['螃蟹']},{c:'融',p:'róng',w:['金融','融资','融合']},{c:'螟',p:'míng',w:['菜螟','螟害','螟岭']},{c:'螺',p:'luó',w:['螺旋','螺丝','螺纹']},{c:'蟀',p:'shuài',w:['蟋蟀']},{c:'蟆',p:'má',w:['蛤蟆']},{c:'蟋',p:'xī',w:['蟋蟀']},{c:'蟹',p:'xiè',w:['螃蟹']},{c:'蠕',p:'rú',w:['蠕虫','蠕动']},{c:'蠢',p:'chǔn',w:['愚蠢','蠢货','蠢事']},{c:'血',p:'xuè',w:['血液','血腥','流血']},{c:'衅',p:'xìn',w:['挑衅']},{c:'行',p:'xíng',w:['进行','举行','行为']},{c:'衍',p:'yǎn',w:['衍生','繁衍','敷衍']},{c:'衔',p:'xián',w:['头衔','衔接','军衔']},{c:'街',p:'jiē',w:['街道','街头','大街']},{c:'衙',p:'yá',w:['衙门']},{c:'衡',p:'héng',w:['平衡','衡量','均衡']},{c:'补',p:'bǔ',w:['补充','补偿','补助']},{c:'表',p:'biǎo',w:['代表','表示','表现']},{c:'衩',p:'chǎ',w:['裤衩']},{c:'衫',p:'shān',w:['衬衫']},{c:'衬',p:'chèn',w:['衬衫','衬衣','衬托']},{c:'衰',p:'shuāi',w:['衰退','衰落','衰老']},{c:'衷',p:'zhōng',w:['热衷','初衷','衷心']},{c:'袁',p:'yuán',w:['袁绍']},{c:'袄',p:'ǎo',w:['棉袄']},{c:'袋',p:'dài',w:['脑袋','口袋','袋子']},{c:'袍',p:'páo',w:['长袍','旗袍']},{c:'袒',p:'tǎn',w:['偏袒']},{c:'袖',p:'xiù',w:['领袖','袖子','长袖']},{c:'袜',p:'wà',w:['丝袜','袜子']},{c:'被',p:'bèi',w:['被捕','被迫','被告']},{c:'袭',p:'xí',w:['袭击','空袭','突袭']},{c:'袱',p:'fú',w:['包袱']},{c:'裁',p:'cái',w:['总裁','制裁','独裁']},{c:'裂',p:'liè',w:['分裂','破裂','断裂']},{c:'装',p:'zhuāng',w:['武装','装备','安装']},{c:'裆',p:'dāng',w:['裤裆']},{c:'裕',p:'yù',w:['富裕','充裕','宽裕']},{c:'裙',p:'qún',w:['裙子','短裙','长裙']},{c:'裤',p:'kù',w:['裤子','内裤','短裤']},{c:'裳',p:'shang',w:['衣裳']},{c:'裸',p:'luǒ',w:['裸体','裸露','裸照']},{c:'裹',p:'guǒ',w:['包裹']},{c:'褂',p:'guà',w:['单褂','大褂','小褂']},{c:'褐',p:'hè',w:['褐色']},{c:'褒',p:'bāo',w:['褒奖']},{c:'褥',p:'rù',w:['产褥','床褥','被褥']},{c:'褪',p:'tuì',w:['褪色']},{c:'襟',p:'jīn',w:['冲襟','前襟','后襟']},{c:'西',p:'xī',w:['东西','西方','西部']},{c:'要',p:'yào',w:['需要','主要','重要']},{c:'覆',p:'fù',w:['覆盖','颠覆','反覆']},{c:'见',p:'jiàn',w:['意见','看见','见到']},{c:'观',p:'guān',w:['观点','观众','观察']},{c:'规',p:'guī',w:['规定','规模','规律']},{c:'觅',p:'mì',w:['寻觅','觅食']},{c:'视',p:'shì',w:['视频','电视','重视']},{c:'览',p:'lǎn',w:['展览','游览','一览']},{c:'觉',p:'jué',w:['觉得','感觉','睡觉']},{c:'解',p:'jiě',w:['了解','解决','解释']},{c:'触',p:'chù',w:['接触','触及','触动']},{c:'言',p:'yán',w:['语言','而言','发言']},{c:'誉',p:'yù',w:['荣誉','名誉','信誉']},{c:'誊',p:'téng',w:['誊书','誊写','誊出']},{c:'誓',p:'shì',w:['宣誓','发誓','誓言']},{c:'警',p:'jǐng',w:['警察','警方','警告']},{c:'譬',p:'pì',w:['譬如']},{c:'计',p:'jì',w:['计划','设计','统计']},{c:'订',p:'dìng',w:['签订','修订','制订']},{c:'认',p:'rèn',w:['认为','认识','承认']},{c:'讥',p:'jī',w:['讥讽']},{c:'讨',p:'tǎo',w:['讨论','讨厌','探讨']},{c:'让',p:'ràng',w:['让出','不让','受让']},{c:'训',p:'xùn',w:['训练','培训','教训']},{c:'议',p:'yì',w:['会议','建议','协议']},{c:'讯',p:'xùn',w:['资讯','通讯','腾讯']},{c:'记',p:'jì',w:['记者','记录','记得']},{c:'讲',p:'jiǎng',w:['讲话','演讲','讲述']},{c:'讳',p:'huì',w:['忌讳','避讳']},{c:'讶',p:'yà',w:['惊讶','讶异']},{c:'许',p:'xǔ',w:['许多','也许','允许']},{c:'讹',p:'é',w:['讹诈']},{c:'论',p:'lùn',w:['理论','讨论','无论']},{c:'讼',p:'sòng',w:['诉讼']},{c:'讽',p:'fěng',w:['讽刺','嘲讽','讥讽']},{c:'设',p:'shè',w:['建设','设计','设备']},{c:'访',p:'fǎng',w:['访问','采访','访谈']},{c:'诀',p:'jué',w:['秘诀','诀窍','口诀']},{c:'证',p:'zhèng',w:['证明','保证','证据']},{c:'评',p:'píng',w:['评论','批评','评价']},{c:'诅',p:'zǔ',w:['诅咒']},{c:'识',p:'shí',w:['认识','知识','意识']},{c:'诈',p:'zhà',w:['欺诈','敲诈','狡诈']},{c:'诉',p:'sù',w:['告诉','起诉','诉讼']},{c:'诊',p:'zhěn',w:['诊断','诊所','确诊']},{c:'词',p:'cí',w:['歌词','词汇','名词']},{c:'译',p:'yì',w:['翻译','编译','音译']},{c:'试',p:'shì',w:['测试','考试','试图']},{c:'诗',p:'shī',w:['诗人','诗歌','史诗']},{c:'诚',p:'chéng',w:['忠诚','诚信','真诚']},{c:'话',p:'huà',w:['电话','的话','说话']},{c:'诞',p:'dàn',w:['诞生','圣诞','诞辰']},{c:'诡',p:'guǐ',w:['诡异','诡计']},{c:'询',p:'xún',w:['咨询','询问','查询']},{c:'该',p:'gāi',w:['应该','该是','该会']},{c:'详',p:'xiáng',w:['详细','详情','不详']},{c:'诫',p:'jiè',w:['告诫']},{c:'诬',p:'wū',w:['诬陷','诬蔑','诬告']},{c:'语',p:'yǔ',w:['语言','英语','汉语']},{c:'误',p:'wù',w:['错误','失误','误解']},{c:'诱',p:'yòu',w:['诱惑','诱人','引诱']},{c:'诲',p:'huì',w:['教诲']},{c:'说',p:'shuō',w:['来说','说明','说来']},{c:'诵',p:'sòng',w:['朗诵','背诵','诵读']},{c:'请',p:'qǐng',w:['申请','邀请','请求']},{c:'诸',p:'zhū',w:['诸多','诸如','诸位']},{c:'诺',p:'nuò',w:['承诺','诺言','诺夫']},{c:'读',p:'dú',w:['阅读','读者','读书']},{c:'诽',p:'fěi',w:['诽谤']},{c:'课',p:'kè',w:['课程','课题','上课']},{c:'谁',p:'shuí',w:['谁错','谁家','归谁']},{c:'调',p:'diào',w:['调查','强调','调整']},{c:'谅',p:'liàng',w:['原谅','谅解','体谅']},{c:'谆',p:'zhūn',w:['谆告','谆诫','谆嘱']},{c:'谈',p:'tán',w:['谈判','谈话','谈论']},{c:'谊',p:'yì',w:['友谊','联谊','情谊']},{c:'谋',p:'móu',w:['阴谋','参谋','谋求']},{c:'谍',p:'dié',w:['间谍']},{c:'谎',p:'huǎng',w:['谎言','撒谎','说谎']},{c:'谐',p:'xié',w:['和谐','谐音']},{c:'谒',p:'yè',w:['干谒','请谒','谒见']},{c:'谓',p:'wèi',w:['所谓','可谓','称谓']},{c:'谚',p:'yàn',w:['谚语']},{c:'谜',p:'mí',w:['谜团','谜语','之谜']},{c:'谢',p:'xiè',w:['谢谢','感谢','多谢']},{c:'谣',p:'yáo',w:['谣言','民谣','歌谣']},{c:'谤',p:'bàng',w:['诽谤']},{c:'谦',p:'qiān',w:['谦虚','谦卑','谦逊']},{c:'谨',p:'jǐn',w:['谨慎','严谨','拘谨']},{c:'谬',p:'miù',w:['荒谬','谬误','谬论']},{c:'谭',p:'tán',w:['谭家','奇谭','笔谭']},{c:'谱',p:'pǔ',w:['光谱','食谱','离谱']},{c:'谴',p:'qiǎn',w:['谴责']},{c:'谷',p:'gǔ',w:['曼谷','河谷','山谷']},{c:'豁',p:'huō',w:['豁免','豁达']},{c:'豆',p:'dòu',w:['土豆','大豆','豆瓣']},{c:'豌',p:'wān',w:['豌豆']},{c:'象',p:'xiàng',w:['现象','对象','形象']},{c:'豪',p:'háo',w:['豪华','自豪','富豪']},{c:'豫',p:'yù',w:['犹豫']},{c:'豹',p:'bào',w:['海豹','猎豹','豹子']},{c:'豺',p:'chái',w:['豺狼']},{c:'貌',p:'mào',w:['面貌','礼貌','外貌']},{c:'贞',p:'zhēn',w:['贞观','忠贞','贞操']},{c:'负',p:'fù',w:['负责','负担','负面']},{c:'贡',p:'gòng',w:['贡献','西贡','自贡']},{c:'财',p:'cái',w:['财产','财富','财政']},{c:'责',p:'zé',w:['负责','责任','谴责']},{c:'贤',p:'xián',w:['贤者']},{c:'败',p:'bài',w:['失败','打败','击败']},{c:'账',p:'zhàng',w:['账号','账户','账目']},{c:'货',p:'huò',w:['货币','货物','货车']},{c:'质',p:'zhì',w:['质量','物质','性质']},{c:'贩',p:'fàn',w:['贩卖','小贩','贩售']},{c:'贪',p:'tān',w:['贪污','贪官','贪心']},{c:'贫',p:'pín',w:['贫困','贫穷','扶贫']},{c:'贬',p:'biǎn',w:['贬值','贬低']},{c:'购',p:'gòu',w:['购买','收购','购物']},{c:'贮',p:'zhù',w:['贮存','贮藏']},{c:'贯',p:'guàn',w:['贯彻','一贯','贯穿']},{c:'贰',p:'èr',w:['贰心','贰本','贰臣']},{c:'贱',p:'jiàn',w:['贱人','贱货','贱民']},{c:'贴',p:'tiē',w:['补贴','津贴','贴有']},{c:'贵',p:'guì',w:['贵族','贵州','珍贵']},{c:'贷',p:'dài',w:['贷款','信贷','借贷']},{c:'贸',p:'mào',w:['贸易','外贸','经贸']},{c:'费',p:'fèi',w:['免费','消费','费用']},{c:'贺',p:'hè',w:['祝贺','庆贺','贺卡']},{c:'贼',p:'zéi',w:['盗贼','海贼','贼人']},{c:'贾',p:'jiǎ',w:['商贾']},{c:'贿',p:'huì',w:['贿赂','受贿','行贿']},{c:'赂',p:'lù',w:['贿赂']},{c:'赃',p:'zāng',w:['栽赃']},{c:'资',p:'zī',w:['资料','资源','投资']},{c:'赊',p:'shē',w:['赊买','赊借','赊卖']},{c:'赋',p:'fù',w:['赋予','天赋','赋税']},{c:'赎',p:'shú',w:['救赎','赎金','赎回']},{c:'赏',p:'shǎng',w:['欣赏','观赏','赞赏']},{c:'赐',p:'cì',w:['赐予','恩赐','赐给']},{c:'赔',p:'péi',w:['赔偿','索赔','赔率']},{c:'赖',p:'lài',w:['依赖','信赖','无赖']},{c:'赘',p:'zhuì',w:['累赘']},{c:'赚',p:'zhuàn',w:['赚钱','赚有','赚到']},{c:'赛',p:'sài',w:['比赛','竞赛','决赛']},{c:'赞',p:'zàn',w:['赞成','赞同','赞助']},{c:'赠',p:'zèng',w:['捐赠','赠送','赠品']},{c:'赡',p:'shàn',w:['赡养']},{c:'赢',p:'yíng',w:['赢得','赢到','赢家']},{c:'赤',p:'chì',w:['赤道','赤字','赤裸']},{c:'赦',p:'shè',w:['赦免','特赦','大赦']},{c:'赫',p:'hè',w:['赫尔','巴赫','显赫']},{c:'走',p:'zǒu',w:['走向','走人','走时']},{c:'赴',p:'fù',w:['分赴','开赴','赴约']},{c:'赵',p:'zhào',w:['赵家','后赵','赵军']},{c:'赶',p:'gǎn',w:['赶紧','赶快','赶到']},{c:'起',p:'qǐ',w:['起来','一起','引起']},{c:'趁',p:'chèn',w:['趁机','趁着','趁便']},{c:'超',p:'chāo',w:['超过','超级','超越']},{c:'越',p:'yuè',w:['越南','超越','穿越']},{c:'趋',p:'qū',w:['趋势','日趋','趋向']},{c:'趟',p:'tàng',w:['一趟']},{c:'趣',p:'qù',w:['兴趣','有趣','乐趣']},{c:'趴',p:'pā',w:['趴在']},{c:'趾',p:'zhǐ',w:['脚趾']},{c:'跃',p:'yuè',w:['活跃','飞跃','跳跃']},{c:'跋',p:'bá',w:['跋涉','拓跋']},{c:'跌',p:'diē',w:['下跌','跌倒','跌幅']},{c:'跑',p:'pǎo',w:['小跑','逃跑','跑马']},{c:'跛',p:'bǒ',w:['跛子','跛脚','跛行']},{c:'距',p:'jù',w:['距离','差距','相距']},{c:'跟',p:'gēn',w:['跟着','跟踪','跟随']},{c:'跨',p:'kuà',w:['跨越','跨国','横跨']},{c:'跪',p:'guì',w:['跪下','下跪','跪到']},{c:'路',p:'lù',w:['铁路','道路','路线']},{c:'跳',p:'tiào',w:['跳舞','心跳','跳跃']},{c:'践',p:'jiàn',w:['实践','践踏','践行']},{c:'跷',p:'qiāo',w:['没跷','跷了','跷出']},{c:'跺',p:'duò',w:['跺步','跺脚']},{c:'踊',p:'yǒng',w:['踊跃']},{c:'踏',p:'tà',w:['踏上','践踏','踏实']},{c:'踢',p:'tī',w:['踢球','踢出','开踢']},{c:'踩',p:'cǎi',w:['踩踏','踩到','踩下']},{c:'踪',p:'zōng',w:['失踪','跟踪','追踪']},{c:'踱',p:'duó',w:['踱去','踱来','踱步']},{c:'蹂',p:'róu',w:['蹂躏']},{c:'蹄',p:'tí',w:['前蹄','四蹄','蹄子']},{c:'蹈',p:'dǎo',w:['舞蹈','重蹈']},{c:'蹋',p:'tà',w:['糟蹋']},{c:'蹦',p:'bèng',w:['蹦出','蹦起','蹦达']},{c:'蹬',p:'dēng',w:['蹬车','马蹬','脚蹬']},{c:'蹭',p:'cèng',w:['一蹭','磨蹭']},{c:'蹲',p:'dūn',w:['蹲下','蹲到','蹲过']},{c:'躁',p:'zào',w:['烦躁','暴躁','急躁']},{c:'躏',p:'lìn',w:['蹂躏']},{c:'身',p:'shēn',w:['身体','身上','本身']},{c:'躬',p:'gōng',w:['鞠躬']},{c:'躯',p:'qū',w:['躯体','身躯','躯干']},{c:'躲',p:'duǒ',w:['躲避','躲开','躲藏']},{c:'躺',p:'tǎng',w:['躺进','躺倒','敢躺']},{c:'轧',p:'yà',w:['热轧','轧上','轧件']},{c:'轨',p:'guǐ',w:['轨道','轨迹','出轨']},{c:'轩',p:'xuān',w:['轩辕']},{c:'转',p:'zhuǎn',w:['转移','转变','转型']},{c:'轮',p:'lún',w:['轮胎','一轮','轮流']},{c:'软',p:'ruǎn',w:['软件','微软','软体']},{c:'轰',p:'hōng',w:['轰炸','轰动','炮轰']},{c:'轴',p:'zhóu',w:['轴承','主轴','卷轴']},{c:'轻',p:'qīng',w:['年轻','轻松','轻易']},{c:'载',p:'zài',w:['下载','记载','转载']},{c:'轿',p:'jiào',w:['轿车']},{c:'较',p:'jiào',w:['比较','较为','较后']},{c:'辅',p:'fǔ',w:['辅助','辅导','基辅']},{c:'辆',p:'liàng',w:['车辆','一辆','万辆']},{c:'辈',p:'bèi',w:['前辈','长辈','一辈']},{c:'辉',p:'huī',w:['辉煌','光辉']},{c:'辐',p:'fú',w:['辐射']},{c:'辑',p:'jí',w:['编辑','逻辑','专辑']},{c:'输',p:'shū',w:['运输','输入','输出']},{c:'辕',p:'yuán',w:['轩辕']},{c:'辖',p:'xiá',w:['管辖','辖区','下辖']},{c:'辙',p:'zhé',w:['覆辙','没辙']},{c:'辛',p:'xīn',w:['辛苦','艰辛','辛勤']},{c:'辜',p:'gū',w:['无辜','辜负']},{c:'辞',p:'cí',w:['辞职','辞去','辞典']},{c:'辟',p:'pì',w:['开辟','复辟','精辟']},{c:'辣',p:'là',w:['辣椒','辣妹','麻辣']},{c:'辨',p:'biàn',w:['分辨','辨别','辨识']},{c:'辩',p:'biàn',w:['辩论','辩护','辩解']},{c:'辫',p:'biàn',w:['辫子']},{c:'辰',p:'chén',w:['诞辰','星辰','时辰']},{c:'辱',p:'rǔ',w:['侮辱','羞辱','耻辱']},{c:'边',p:'biān',w:['身边','一边','旁边']},{c:'辽',p:'liáo',w:['辽宁','辽阔','辽东']},{c:'达',p:'dá',w:['达到','表达','达成']},{c:'迁',p:'qiān',w:['变迁','迁移','拆迁']},{c:'迂',p:'yū',w:['迂回']},{c:'迄',p:'qì',w:['迄今']},{c:'迅',p:'xùn',w:['迅速','鲁迅','迅雷']},{c:'过',p:'guò',w:['通过','不过','过去']},{c:'迈',p:'mài',w:['迈进','迈向','迈克']},{c:'迎',p:'yíng',w:['欢迎','迎接','迎来']},{c:'运',p:'yùn',w:['运动','运用','运行']},{c:'近',p:'jìn',w:['最近','附近','接近']},{c:'返',p:'fǎn',w:['返回','重返','遣返']},{c:'还',p:'hái',w:['还有','还是','还要']},{c:'这',p:'zhè',w:['这个','这些','这样']},{c:'进',p:'jìn',w:['进行','进入','促进']},{c:'远',p:'yuǎn',w:['永远','远离','遥远']},{c:'违',p:'wéi',w:['违法','违反','违背']},{c:'连',p:'lián',w:['连续','连结','连接']},{c:'迟',p:'chí',w:['延迟','推迟','迟到']},{c:'迫',p:'pò',w:['被迫','迫害','强迫']},{c:'述',p:'shù',w:['描述','上述','讲述']},{c:'迷',p:'mí',w:['球迷','迷你','迷人']},{c:'迹',p:'jì',w:['奇迹','痕迹','迹象']},{c:'追',p:'zhuī',w:['追求','追踪','追究']},{c:'退',p:'tuì',w:['退出','退休','撤退']},{c:'送',p:'sòng',w:['送给','送到','发送']},{c:'适',p:'shì',w:['适合','适应','适当']},{c:'逃',p:'táo',w:['逃避','逃离','逃脱']},{c:'逆',p:'nì',w:['逆转','叛逆','逆向']},{c:'选',p:'xuǎn',w:['选择','选举','当选']},{c:'逊',p:'xùn',w:['逊色','谦逊']},{c:'透',p:'tòu',w:['透过','透露','透明']},{c:'逐',p:'zhú',w:['逐渐','逐步','驱逐']},{c:'递',p:'dì',w:['传递','快递','递交']},{c:'途',p:'tú',w:['途径','用途','途中']},{c:'逗',p:'dòu',w:['逗留','挑逗']},{c:'通',p:'tōng',w:['通过','交通','通常']},{c:'逛',p:'guàng',w:['逛街','逛逛','闲逛']},{c:'逝',p:'shì',w:['逝世','逝去','流逝']},{c:'逞',p:'chěng',w:['得逞','逞强']},{c:'速',p:'sù',w:['速度','快速','迅速']},{c:'造',p:'zào',w:['造成','创造','制造']},{c:'逢',p:'féng',w:['每逢','重逢','适逢']},{c:'逮',p:'dǎi',w:['逮捕','逮到']},{c:'逸',p:'yì',w:['逃逸','安逸','飘逸']},{c:'逻',p:'luó',w:['逻辑','巡逻']},{c:'逼',p:'bī',w:['逼为','逼到','逼下']},{c:'逾',p:'yú',w:['逾期','过逾','逾时']},{c:'遂',p:'suì',w:['未遂','不遂','遂即']},{c:'遇',p:'yù',w:['遇到','待遇','遭遇']},{c:'遍',p:'biàn',w:['普遍','一遍','遍布']},{c:'遏',p:'è',w:['遏制','遏止']},{c:'道',p:'dào',w:['知道','报道','难道']},{c:'遗',p:'yí',w:['遗憾','遗址','遗产']},{c:'遣',p:'qiǎn',w:['派遣','遣返','消遣']},{c:'遥',p:'yáo',w:['遥远','遥控','遥感']},{c:'遭',p:'zāo',w:['遭到','遭遇','遭受']},{c:'遮',p:'zhē',w:['遮住','遮掩','遮蔽']},{c:'遵',p:'zūn',w:['遵守','遵循','遵照']},{c:'避',p:'bì',w:['避免','逃避','回避']},{c:'邀',p:'yāo',w:['邀请','受邀','应邀']},{c:'邑',p:'yì',w:['大邑','干邑','高邑']},{c:'邓',p:'dèng',w:['邓肯','邓县','邓州']},{c:'邢',p:'xíng',w:['邢台']},{c:'那',p:'nà',w:['那么','那些','那个']},{c:'邦',p:'bāng',w:['联邦','城邦','刘邦']},{c:'邪',p:'xié',w:['邪恶','邪教','中邪']},{c:'邮',p:'yóu',w:['邮件','邮政','邮报']},{c:'邻',p:'lín',w:['邻居','邻近','邻国']},{c:'郁',p:'yù',w:['忧郁','郁闷','抑郁']},{c:'郊',p:'jiāo',w:['郊区','郊外','市郊']},{c:'郎',p:'láng',w:['女郎','太郎','侍郎']},{c:'郑',p:'zhèng',w:['郑州','郑重','新郑']},{c:'部',p:'bù',w:['部分','部门','全部']},{c:'郭',p:'guō',w:['东郭','城郭']},{c:'都',p:'dōu',w:['首都','成都','全都']},{c:'鄙',p:'bǐ',w:['卑鄙','鄙视']},{c:'酌',p:'zhuó',w:['斟酌']},{c:'配',p:'pèi',w:['配合','分配','配置']},{c:'酒',p:'jiǔ',w:['酒店','酒吧','喝酒']},{c:'酗',p:'xù',w:['酗酒']},{c:'酝',p:'yùn',w:['酝酿']},{c:'酣',p:'hān',w:['半酣','正酣','酣乐']},{c:'酥',p:'sū',w:['油酥','酥松','酥油']},{c:'酪',p:'lào',w:['奶酪','乳酪','乾酪']},{c:'酬',p:'chóu',w:['报酬','薪酬','应酬']},{c:'酱',p:'jiàng',w:['酱油','果酱','大酱']},{c:'酵',p:'jiào',w:['发酵','酵母','酵素']},{c:'酷',p:'kù',w:['残酷','酷刑','冷酷']},{c:'酸',p:'suān',w:['酸性','硫酸','酸奶']},{c:'酿',p:'niàng',w:['酝酿','酿成','酿酒']},{c:'醇',p:'chún',w:['乙醇','甲醇']},{c:'醉',p:'zuì',w:['喝醉','麻醉','陶醉']},{c:'醋',p:'cù',w:['吃醋']},{c:'醒',p:'xǐng',w:['提醒','清醒','觉醒']},{c:'采',p:'cǎi',w:['采用','采取','采访']},{c:'释',p:'shì',w:['解释','释放','注释']},{c:'里',p:'lǐ',w:['这里','哪里','那里']},{c:'重',p:'zhòng',w:['重要','严重','重点']},{c:'野',p:'yě',w:['野生','野蛮','视野']},{c:'量',p:'liàng',w:['力量','大量','质量']},{c:'金',p:'jīn',w:['资金','金融','基金']},{c:'鉴',p:'jiàn',w:['鉴定','鉴于','借鉴']},{c:'针',p:'zhēn',w:['针对','方针','指针']},{c:'钉',p:'dīng',w:['钉子','元钉','图钉']},{c:'钓',p:'diào',w:['钓鱼']},{c:'钙',p:'gài',w:['钙质']},{c:'钝',p:'dùn',w:['迟钝']},{c:'钞',p:'chāo',w:['钞票','现钞']},{c:'钟',p:'zhōng',w:['分钟','时钟','秒钟']},{c:'钠',p:'nà',w:['化钠','数钠','钠灯']},{c:'钢',p:'gāng',w:['钢铁','钢琴','钢材']},{c:'钥',p:'yào',w:['钥匙','密钥']},{c:'钦',p:'qīn',w:['钦佩','钦定','钦州']},{c:'钧',p:'jūn',w:['钧道','钧命','钧安']},{c:'钩',p:'gōu',w:['挂钩','脱钩','上钩']},{c:'钮',p:'niǔ',w:['按钮']},{c:'钱',p:'qián',w:['赚钱','金钱','有钱']},{c:'钳',p:'qián',w:['台钳','大钳','手钳']},{c:'钻',p:'zuān',w:['钻石','钻研','钻进']},{c:'钾',p:'jiǎ',w:['全钾','化钾','钾盐']},{c:'铁',p:'tiě',w:['铁路','地铁','钢铁']},{c:'铃',p:'líng',w:['铃声','铃木','铃铛']},{c:'铅',p:'qiān',w:['铅笔']},{c:'铆',p:'mǎo',w:['铆接','铆机','铆劲']},{c:'铐',p:'kào',w:['手铐']},{c:'铛',p:'dāng',w:['铃铛']},{c:'铜',p:'tóng',w:['铜牌','青铜','铜像']},{c:'铝',p:'lǚ',w:['铝合金']},{c:'铡',p:'zhá',w:['铡草','铡门','铡刀']},{c:'铣',p:'xǐ',w:['铣头','铣刀','铣工']},{c:'铭',p:'míng',w:['铭记','铭文']},{c:'铲',p:'chǎn',w:['铲除']},{c:'银',p:'yín',w:['银行','银河','白银']},{c:'铸',p:'zhù',w:['铸造','铸币','铸铁']},{c:'铺',p:'pù',w:['店铺','铺设','商铺']},{c:'链',p:'liàn',w:['链接','链条','项链']},{c:'销',p:'xiāo',w:['销售','撤销','营销']},{c:'锁',p:'suǒ',w:['封锁','锁定','连锁']},{c:'锄',p:'chú',w:['锄头']},{c:'锅',p:'guō',w:['锅炉','火锅','下锅']},{c:'锈',p:'xiù',w:['生锈']},{c:'锉',p:'cuò',w:['方锉','锉光','锉去']},{c:'锋',p:'fēng',w:['先锋','前锋','雷锋']},{c:'锌',p:'xīn',w:['锌指','锌版','锌极']},{c:'锐',p:'ruì',w:['尖锐','敏锐','精锐']},{c:'错',p:'cuò',w:['错误','不错','没错']},{c:'锚',p:'máo',w:['抛锚']},{c:'锡',p:'xī',w:['无锡','南锡','锡克']},{c:'锣',p:'luó',w:['大锣','小锣','开锣']},{c:'锤',p:'chuí',w:['锤子','铁锤']},{c:'锥',p:'zhuī',w:['光锥','双锥','改锥']},{c:'锦',p:'jǐn',w:['集锦','锦州','锦绣']},{c:'锨',p:'xiān',w:['木锨','铁锨']},{c:'锭',p:'dìng',w:['一锭','万锭','三锭']},{c:'键',p:'jiàn',w:['关键','键盘','按键']},{c:'锯',p:'jù',w:['锯齿','电锯']},{c:'锰',p:'měng',w:['法锰','化锰','含锰']},{c:'锹',p:'qiāo',w:['一锹','圆锹','木锹']},{c:'锻',p:'duàn',w:['锻炼','锻造']},{c:'镀',p:'dù',w:['镀金']},{c:'镇',p:'zhèn',w:['城镇','镇压','小镇']},{c:'镊',p:'niè',w:['镊子']},{c:'镐',p:'gǎo',w:['电镐','镐头','风镐']},{c:'镜',p:'jìng',w:['镜头','眼镜','镜子']},{c:'镣',p:'liào',w:['脚镣','锁镣','镣铐']},{c:'镰',p:'lián',w:['镰刀']},{c:'镶',p:'xiāng',w:['镶嵌']},{c:'长',p:'zhǎng',w:['增长','长期','部长']},{c:'闪',p:'shǎn',w:['闪电','闪亮','闪耀']},{c:'闭',p:'bì',w:['关闭','封闭','倒闭']},{c:'问',p:'wèn',w:['问题','访问','顾问']},{c:'闯',p:'chuǎng',w:['闯入','闯进','闯关']},{c:'闰',p:'rùn',w:['闰位','闰年','闰日']},{c:'闲',p:'xián',w:['休闲','闲置','闲暇']},{c:'间',p:'jiān',w:['时间','之间','期间']},{c:'闷',p:'mèn',w:['郁闷','纳闷','闷热']},{c:'闸',p:'zhá',w:['闸门']},{c:'闹',p:'nào',w:['热闹','胡闹','闹剧']},{c:'闺',p:'guī',w:['闺女']},{c:'闻',p:'wén',w:['新闻','丑闻','闻名']},{c:'闽',p:'mǐn',w:['闽南']},{c:'阀',p:'fá',w:['军阀','财阀','阀门']},{c:'阁',p:'gé',w:['内阁','阁下','阁楼']},{c:'阅',p:'yuè',w:['阅读','订阅','查阅']},{c:'阎',p:'yán',w:['阎王']},{c:'阐',p:'chǎn',w:['阐述','阐明','阐释']},{c:'阔',p:'kuò',w:['广阔','开阔','宽阔']},{c:'队',p:'duì',w:['军队','部队','团队']},{c:'阱',p:'jǐng',w:['陷阱']},{c:'防',p:'fáng',w:['防止','预防','国防']},{c:'阳',p:'yáng',w:['太阳','阳光','沈阳']},{c:'阴',p:'yīn',w:['阴谋','阴影','阴道']},{c:'阵',p:'zhèn',w:['一阵','阵营','阵地']},{c:'阶',p:'jiē',w:['阶段','阶级','阶层']},{c:'阻',p:'zǔ',w:['阻止','阻碍','阻挡']},{c:'阿',p:'ā',w:['阿里','阿姨','阿拉']},{c:'附',p:'fù',w:['附近','附属','附加']},{c:'际',p:'jì',w:['国际','实际','之际']},{c:'陆',p:'lù',w:['大陆','陆续','登陆']},{c:'陈',p:'chén',w:['陈述','陈列','陈云']},{c:'陋',p:'lòu',w:['丑陋','简陋']},{c:'陌',p:'mò',w:['陌生']},{c:'降',p:'jiàng',w:['降低','下降','投降']},{c:'限',p:'xiàn',w:['限制','有限','无限']},{c:'陕',p:'shǎn',w:['陕西','陕北']},{c:'陡',p:'dǒu',w:['陡峭']},{c:'院',p:'yuàn',w:['医院','学院','法院']},{c:'除',p:'chú',w:['除了','废除','删除']},{c:'陨',p:'yǔn',w:['陨石']},{c:'险',p:'xiǎn',w:['危险','风险','保险']},{c:'陪',p:'péi',w:['陪伴','陪同','陪都']},{c:'陵',p:'líng',w:['丘陵','陵墓','金陵']},{c:'陶',p:'táo',w:['陶瓷','陶器','陶醉']},{c:'陷',p:'xiàn',w:['陷入','缺陷','陷阱']},{c:'隅',p:'yú',w:['一隅']},{c:'隆',p:'lóng',w:['乾隆','隆重','克隆']},{c:'随',p:'suí',w:['随着','随后','随时']},{c:'隐',p:'yǐn',w:['隐藏','隐私','隐瞒']},{c:'隔',p:'gé',w:['隔离','隔壁','间隔']},{c:'隘',p:'ài',w:['狭隘']},{c:'隙',p:'xì',w:['缝隙','空隙','间隙']},{c:'障',p:'zhàng',w:['保障','障碍','故障']},{c:'隧',p:'suì',w:['隧道']},{c:'隶',p:'lì',w:['隶属','直隶']},{c:'难',p:'nán',w:['困难','难道','难以']},{c:'雀',p:'què',w:['麻雀','孔雀','朱雀']},{c:'雁',p:'yàn',w:['大雁','雁城','雁行']},{c:'雄',p:'xióng',w:['英雄','雄厚','雄性']},{c:'雅',p:'yǎ',w:['优雅','雅典','玛雅']},{c:'集',p:'jí',w:['集团','集中','收集']},{c:'雇',p:'gù',w:['雇主','雇佣','解雇']},{c:'雌',p:'cí',w:['雌性','雌雄']},{c:'雏',p:'chú',w:['雏形']},{c:'雕',p:'diāo',w:['雕像','雕塑','雕刻']},{c:'雳',p:'lì',w:['霹雳']},{c:'零',p:'líng',w:['零售','零件','零星']},{c:'雷',p:'léi',w:['雷达','布雷','格雷']},{c:'雹',p:'báo',w:['冰雹']},{c:'雾',p:'wù',w:['烟雾','迷雾','喷雾']},{c:'需',p:'xū',w:['需要','需求','无需']},{c:'震',p:'zhèn',w:['地震','震惊','震撼']},{c:'霉',p:'méi',w:['倒霉','发霉','霉菌']},{c:'霍',p:'huò',w:['霍尔','挥霍','霍乱']},{c:'霎',p:'shà',w:['一霎','霎时','霎那']},{c:'霜',p:'shuāng',w:['面霜']},{c:'霞',p:'xiá',w:['云霞','晚霞','朝霞']},{c:'露',p:'lù',w:['透露','揭露','暴露']},{c:'霸',p:'bà',w:['霸权','争霸','霸王']},{c:'霹',p:'pī',w:['霹雳']},{c:'青',p:'qīng',w:['青年','青岛','青春']},{c:'靖',p:'jìng',w:['嘉靖']},{c:'静',p:'jìng',w:['安静','冷静','平静']},{c:'非',p:'fēi',w:['非常','非洲','非法']},{c:'靠',p:'kào',w:['依靠','可靠','靠近']},{c:'靡',p:'mí',w:['风靡']},{c:'面',p:'miàn',w:['方面','里面','面积']},{c:'革',p:'gé',w:['革命','改革','变革']},{c:'靴',p:'xuē',w:['靴子']},{c:'靶',p:'bǎ',w:['靶场','靶子']},{c:'鞋',p:'xié',w:['鞋子','拖鞋','皮鞋']},{c:'鞍',p:'ān',w:['鞍山','马鞍']},{c:'鞠',p:'jū',w:['鞠躬']},{c:'鞭',p:'biān',w:['鞭打','鞭子','鞭刑']},{c:'韧',p:'rèn',w:['坚韧','韧性','韧带']},{c:'韩',p:'hán',w:['韩国','南韩','韩语']},{c:'韭',p:'jiǔ',w:['韭菜']},{c:'音',p:'yīn',w:['音乐','声音','语音']},{c:'韵',p:'yùn',w:['神韵','韵味','韵律']},{c:'页',p:'yè',w:['网页','页面','首页']},{c:'顶',p:'dǐng',w:['屋顶','顶级','顶尖']},{c:'顷',p:'qǐng',w:['公顷']},{c:'项',p:'xiàng',w:['项目','一项','各项']},{c:'顺',p:'shùn',w:['顺利','顺序','顺便']},{c:'须',p:'xū',w:['必须','无须','须发']},{c:'顽',p:'wán',w:['顽固','顽强','顽皮']},{c:'顾',p:'gù',w:['照顾','顾问','顾客']},{c:'顿',p:'dùn',w:['整顿','一顿','顿时']},{c:'颁',p:'bān',w:['颁布','颁发','颁奖']},{c:'颂',p:'sòng',w:['歌颂','赞颂','颂扬']},{c:'预',p:'yù',w:['预算','预测','预计']},{c:'颅',p:'lú',w:['头颅','颅骨']},{c:'领',p:'lǐng',w:['领导','领域','领袖']},{c:'颇',p:'pǒ',w:['颇具','颇为','颇成']},{c:'颈',p:'jǐng',w:['瓶颈','颈部','宫颈']},{c:'颊',p:'jiá',w:['脸颊']},{c:'频',p:'pín',w:['视频','频道','频率']},{c:'颓',p:'tuí',w:['颓废']},{c:'颖',p:'yǐng',w:['新颖']},{c:'颗',p:'kē',w:['一颗','颗粒','两颗']},{c:'题',p:'tí',w:['问题','主题','话题']},{c:'颜',p:'yán',w:['颜色','颜料','颜面']},{c:'额',p:'é',w:['金额','总额','额外']},{c:'颠',p:'diān',w:['颠覆','颠倒','颠簸']},{c:'颤',p:'chàn',w:['颤抖','震颤','颤动']},{c:'飒',p:'sà',w:['飒然','飒爽','萧飒']},{c:'飘',p:'piāo',w:['飘扬','飘浮','飘飘']},{c:'飞',p:'fēi',w:['飞机','飞行','起飞']},{c:'食',p:'shí',w:['食品','食物','粮食']},{c:'餐',p:'cān',w:['餐厅','午餐','早餐']},{c:'饥',p:'jī',w:['饥饿','饥荒','饥渴']},{c:'饭',p:'fàn',w:['吃饭','饭店','做饭']},{c:'饮',p:'yǐn',w:['饮食','饮料','餐饮']},{c:'饰',p:'shì',w:['装饰','服饰','掩饰']},{c:'饱',p:'bǎo',w:['温饱','饱受','饱和']},{c:'饲',p:'sì',w:['饲养','饲料']},{c:'饵',p:'ěr',w:['诱饵']},{c:'饶',p:'ráo',w:['饶舌','求饶','饶恕']},{c:'饺',p:'jiǎo',w:['饺子','水饺']},{c:'饼',p:'bǐng',w:['饼干','月饼','煎饼']},{c:'饿',p:'è',w:['饥饿','饿过','受饿']},{c:'馁',p:'něi',w:['气馁']},{c:'馅',p:'xiàn',w:['馅饼']},{c:'馆',p:'guǎn',w:['旅馆','宾馆','餐馆']},{c:'馋',p:'chán',w:['馋言','馋猫','嘴馋']},{c:'馍',p:'mó',w:['馍先','泡馍','馍侠']},{c:'馏',p:'liú',w:['蒸馏']},{c:'馒',p:'mán',w:['馒头']},{c:'首',p:'shǒu',w:['首先','首次','首都']},{c:'香',p:'xiāng',w:['香港','香蕉','香烟']},{c:'驮',p:'tuó',w:['驮马','驮子','驮背']},{c:'驯',p:'xùn',w:['驯服','驯鹿','驯化']},{c:'驰',p:'chí',w:['奔驰','驰名','驰援']},{c:'驱',p:'qū',w:['驱动','驱逐','先驱']},{c:'驳',p:'bó',w:['反驳','驳回','驳斥']},{c:'驴',p:'lǘ',w:['驴子']},{c:'驶',p:'shǐ',w:['驾驶','行驶','驶向']},{c:'驹',p:'jū',w:['名驹','真驹','马驹']},{c:'驻',p:'zhù',w:['进驻','驻有','驻地']},{c:'驼',p:'tuó',w:['骆驼']},{c:'驾',p:'jià',w:['驾驶','驾车','驾照']},{c:'骂',p:'mà',w:['对骂','叫骂','国骂']},{c:'骄',p:'jiāo',w:['骄傲']},{c:'骆',p:'luò',w:['骆驼']},{c:'骇',p:'hài',w:['骇客','骇人']},{c:'验',p:'yàn',w:['经验','实验','体验']},{c:'骏',p:'jùn',w:['骏马']},{c:'骑',p:'qí',w:['骑士','骑兵','骑马']},{c:'骗',p:'piàn',w:['骗子','欺骗','骗局']},{c:'骚',p:'sāo',w:['骚扰','骚乱','骚货']},{c:'骡',p:'luó',w:['骡子']},{c:'骤',p:'zhòu',w:['步骤']},{c:'骨',p:'gǔ',w:['骨头','骨干','骨折']},{c:'髓',p:'suǐ',w:['精髓','骨髓','脊髓']},{c:'高',p:'gāo',w:['最高','提高','高兴']},{c:'鬓',p:'bìn',w:['两鬓','云鬓','双鬓']},{c:'鬼',p:'guǐ',w:['魔鬼','做鬼','鬼才']},{c:'魁',p:'kuí',w:['党魁','魁梧']},{c:'魂',p:'hún',w:['灵魂','销魂','惊魂']},{c:'魄',p:'pò',w:['魄力','气魄','落魄']},{c:'魏',p:'wèi',w:['北魏','魏晋','魏国']},{c:'魔',p:'mó',w:['魔法','恶魔','魔鬼']},{c:'鲁',p:'lǔ',w:['秘鲁','鲁迅','粗鲁']},{c:'鲜',p:'xiān',w:['朝鲜','新鲜','鲜明']},{c:'鲤',p:'lǐ',w:['鲤鱼']},{c:'鲫',p:'jì',w:['白鲫','鲫鱼']},{c:'鲸',p:'jīng',w:['鲸鱼','捕鲸']},{c:'鳄',p:'è',w:['鳄鱼']},{c:'鳍',p:'qí',w:['背鳍','尾鳍','臀鳍']},{c:'鳖',p:'biē',w:['地鳖','马鳖']},{c:'鳞',p:'lín',w:['鳞片']},{c:'鸠',p:'jiū',w:['鸠山','海鸠','班鸠']},{c:'鸡',p:'jī',w:['鸡巴','鸡蛋','鸡肉']},{c:'鸣',p:'míng',w:['共鸣','雷鸣','鸣枪']},{c:'鸥',p:'ōu',w:['海鸥']},{c:'鸦',p:'yā',w:['鸦片','涂鸦','乌鸦']},{c:'鸭',p:'yā',w:['鸭子','家鸭','小鸭']},{c:'鸯',p:'yāng',w:['鸳鸯']},{c:'鸳',p:'yuān',w:['鸳鸯']},{c:'鸵',p:'tuó',w:['鸵鸟']},{c:'鸽',p:'gē',w:['鸽子']},{c:'鸿',p:'hóng',w:['鸿沟','鸿才','鸿图']},{c:'鹃',p:'juān',w:['杜鹃']},{c:'鹅',p:'é',w:['企鹅','天鹅']},{c:'鹉',p:'wǔ',w:['鹦鹉']},{c:'鹊',p:'què',w:['鹊报','鹊起','鹊山']},{c:'鹏',p:'péng',w:['李鹏','大鹏']},{c:'鹤',p:'hè',w:['黄鹤楼']},{c:'鹦',p:'yīng',w:['鹦鹉']},{c:'鹰',p:'yīng',w:['老鹰','猎鹰','天鹰']},{c:'鹿',p:'lù',w:['鹿角','小鹿','驯鹿']},{c:'麦',p:'mài',w:['丹麦','小麦','麦克']},{c:'麸',p:'fū',w:['刷麸','烤麸','麦麸']},{c:'麻',p:'má',w:['麻烦','大麻','麻将']},{c:'黄',p:'huáng',w:['黄金','黄色','黄河']},{c:'黍',p:'shǔ',w:['黍子','黍米','角黍']},{c:'黎',p:'lí',w:['巴黎','黎明']},{c:'黑',p:'hēi',w:['黑人','黑暗','黑色']},{c:'黔',p:'qián',w:['黔县','黔北','黔南']},{c:'默',p:'mò',w:['沉默','幽默','默默']},{c:'鼎',p:'dǐng',w:['鼎盛']},{c:'鼓',p:'gǔ',w:['鼓励','鼓舞','鼓吹']},{c:'鼠',p:'shǔ',w:['老鼠','鼠标','松鼠']},{c:'鼻',p:'bí',w:['鼻子','鼻孔','鼻涕']},{c:'齐',p:'qí',w:['齐全','整齐','一齐']},{c:'齿',p:'chǐ',w:['牙齿','齿轮','不齿']},{c:'龄',p:'líng',w:['年龄','高龄','老龄']},{c:'龙',p:'lóng',w:['龙头','恐龙','九龙']},{c:'龟',p:'guī',w:['乌龟','海龟','龟头']}];
+BANK=BANK.concat(BANK_EXTRA);
+var DAY_SIZE=20;
+var TOTAL_DAYS=Math.ceil(BANK.length/DAY_SIZE);
+var CARD_COLORS=['#FFE8C2','#D8F3FF','#E9FBEF','#F3EDFF','#FFE0E6','#FFF6DC'];
+
+/* ================= 状态 ================= */
+function defaultRewards(){
+  return [
+    {id:'rw1',name:'贴纸一张',cost:20},
+    {id:'rw2',name:'小零食一份',cost:30},
+    {id:'rw3',name:'看动画片20分钟',cost:50},
+    {id:'rw4',name:'周末去公园玩',cost:120}
+  ];
+}
+function freshState(){
+  return {
+    v:1, currentDay:1, points:0, streak:0, lastActive:null,
+    chars:{}, log:{}, rewards:defaultRewards(), redemptions:[],
+    settings:{daily:20,pass:null}, sample:false, parentUnlocked:false
+  };
+}
+function sampleState(){
+  var st=freshState(); st.sample=true; st.currentDay=2; st.points=32; st.streak=1; st.lastActive=dayOffsetStr(-1);
+  for(var i=0;i<DAY_SIZE;i++){
+    var c=BANK[i].c;
+    st.chars[c]={st:(i<15?2:1), day:1};
+  }
+  st.log[dayOffsetStr(-1)]=15;
+  st.redemptions.push({id:'rd_sample',rewardName:'贴纸一张',cost:20,status:'pending',ts:Date.now()-86400000});
+  return st;
+}
+var state=lsGet('state',null);
+if(!state){ state=sampleState(); lsSet('state',state); }
+function save(){ lsSet('state',state); }
+
+/* ================= 计算层 ================= */
+function dayChars(d){ return BANK.slice((d-1)*DAY_SIZE, d*DAY_SIZE); }
+function charSt(c){ var r=state.chars[c]; return r?r.st:0; }
+function isOverdueChar(idx){
+  var day=Math.floor(idx/DAY_SIZE)+1;
+  return day<state.currentDay && charSt(BANK[idx].c)<2;
+}
+function overdueList(){
+  var out=[];
+  for(var i=0;i<(state.currentDay-1)*DAY_SIZE && i<BANK.length;i++){
+    if(charSt(BANK[i].c)<2) out.push(i);
+  }
+  return out;
+}
+function todayTarget(){ return Math.min(state.settings.daily||20, DAY_SIZE); }
+function todayProgress(){
+  var chars=dayChars(state.currentDay), mastered=0;
+  for(var i=0;i<chars.length;i++) if(charSt(chars[i].c)===2) mastered++;
+  return {total:chars.length, mastered:mastered, target:Math.min(todayTarget(),chars.length)};
+}
+function totalMastered(){
+  var n=0; for(var k in state.chars){ if(state.chars[k].st===2) n++; } return n;
+}
+function markSeen(c){
+  var r=state.chars[c]||{st:0,day:state.currentDay};
+  if(r.st===0){ r.st=1; state.points+=1; }
+  state.chars[c]=r; touchActive();
+}
+function markMastered(c){
+  var r=state.chars[c]||{st:0,day:state.currentDay};
+  var was=r.st;
+  if(was<2){ r.st=2; state.points+=2; state.chars[c]=r;
+    var t=todayStr(); state.log[t]=(state.log[t]||0)+1; touchActive(); checkDayClear();
+  }
+}
+function touchActive(){
+  var t=todayStr();
+  if(state.lastActive!==t){
+    state.streak=(state.lastActive===dayOffsetStr(-1))?state.streak+1:1;
+    state.lastActive=t;
+  }
+}
+function checkDayClear(){
+  var chars=dayChars(state.currentDay), all=true;
+  for(var i=0;i<chars.length;i++) if(charSt(chars[i].c)<2){ all=false; break; }
+  if(all && chars.length){
+    state.points+=20;
+    if(state.currentDay<TOTAL_DAYS){
+      state.currentDay++;
+      setTimeout(function(){ toast('太棒了！通关成功 +20分，解锁第 '+state.currentDay+' 关！'); confetti(); },300);
+    }else{
+      setTimeout(function(){ toast('恭喜！全部 '+BANK.length+' 个字都学会啦！'); confetti(); },300);
+    }
+  }
+}
+
+/* ================= 语音 ================= */
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang='zh-CN'; u.rate=0.75; u.pitch=1.1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ================= UI 工具 ================= */
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+function toast(msg){
+  var root=el('toastRoot');
+  var t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  root.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },2600);
+}
+function confetti(){
+  var colors=['#FF6B6B','#4ECDC4','#FFD93D','#9B5DE5','#6BCB77'];
+  for(var i=0;i<40;i++){
+    var c=document.createElement('div'); c.className='confetti';
+    c.style.left=(Math.random()*100)+'vw';
+    c.style.background=colors[i%colors.length];
+    c.style.animationDelay=(Math.random()*0.6)+'s';
+    document.body.appendChild(c);
+    (function(node){ setTimeout(function(){ if(node.parentNode) node.parentNode.removeChild(node); },3000); })(c);
+  }
+}
+function starSvg(fill){ return '<svg viewBox="0 0 24 24" fill="'+(fill?'#FFD93D':'#E8E4F3')+'" stroke="'+(fill?'#E0A800':'#C9C3DE')+'" stroke-width="1.5"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9L12 3z"/></svg>'; }
+/* 无配图的字：画一个田字格代替象形插画 */
+function tianzige(c){
+  var colors=['#FFD93D','#4ECDC4','#FF8FA3','#9B8CE8','#6BCB77','#FF9F6E'];
+  var col=colors[Math.abs(c.charCodeAt(0))%colors.length];
+  return '<svg viewBox="0 0 64 64"><rect x="4" y="4" width="56" height="56" rx="6" fill="#FFFDF5" stroke="'+col+'" stroke-width="3"/>'
+    +'<path d="M32 4v56M4 32h56" stroke="'+col+'" stroke-width="1.5" stroke-dasharray="4 4"/>'
+    +'<text x="32" y="44" text-anchor="middle" font-size="34" fill="#3D3654" font-family="Kaiti SC,STKaiti,KaiTi,serif">'+esc(c)+'</text></svg>';
+}
+function speakerBtn(text,cls){ return '<button class="minibtn '+(cls||'')+'" onclick="event.stopPropagation();window.__speak(\''+esc(text)+'\')"><svg><use href="#i-speaker"/></svg>听一听</button>'; }
+window.__speak=speak;
+
+/* ================= 渲染层（统一由 refreshAll 调度） ================= */
+function renderPointsChip(){ el('pointsChip').textContent=state.points; }
+
+function renderToday(){
+  var box=el('todaySection');
+  var od=overdueList(), tp=todayProgress();
+  var doneToday=tp.mastered>=tp.target;
+  var h='<div class="today-head"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>今天要处理 <span style="font-size:.8rem;color:var(--soft);font-weight:700">'+todayStr()+'</span></div>';
+  if(od.length){
+    h+='<div class="overdue-box"><span class="txt">昨天落下的 '+od.length+' 个字还没掌握，已自动顺延到今天哦</span>'
+      +'<button class="bigbtn" data-go="cards">马上补学</button></div>';
+  }
+  if(state.currentDay>TOTAL_DAYS){
+    h+='<div class="task-line"><span class="txt">全部 '+BANK.length+' 个字都学完啦！可以请爸爸妈妈在家长中心加新内容或重新开始。</span></div>';
+  }else if(doneToday){
+    h+='<div class="task-line"><span class="txt">今天目标 '+tp.target+' 个字：<b style="color:#2E7D32">全部完成！</b>去闯关领奖励吧</span>'
+      +'<button class="bigbtn grape" data-go="levels">去闯关</button></div>';
+  }else{
+    var pct=Math.round(tp.mastered/tp.target*100);
+    h+='<div class="task-line"><span class="txt">今天目标 '+tp.target+' 个字：已学会 <b>'+tp.mastered+'</b> 个，还剩 <b style="color:var(--coral)">'+(tp.target-tp.mastered)+'</b> 个</span>'
+      +'<div class="progress"><i style="width:'+pct+'%"></i></div>'
+      +'<button class="bigbtn teal" data-go="cards">'+(tp.mastered>0?'继续学习':'开始学习')+'</button></div>';
+  }
+  if(totalMastered()>=30){
+    h+='<div class="tip-bar">宝宝已经学会 '+totalMastered()+' 个字啦，建议点右上角「导出备份」保存学习成果</div>';
+  }
+  box.innerHTML=h;
+  var btns=box.querySelectorAll('[data-go]');
+  for(var i=0;i<btns.length;i++){
+    btns[i].addEventListener('click',function(){ switchTab(this.getAttribute('data-go')); });
+  }
+}
+
+/* __MODULE_CARDS__ */
+function renderCards(){
+  var panel=el('panel-cards');
+  if(state.currentDay>TOTAL_DAYS){
+    panel.innerHTML='<div class="empty-box"><div class="sec-title" style="justify-content:center"><svg viewBox="0 0 24 24" fill="#FFD93D" stroke="#E0A800" stroke-width="1.5"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9L12 3z"/></svg>字卡全部学完啦</div>去「闯关奖励」看看成果，或让爸爸妈妈在家长中心重新开始。</div>';
+    return;
+  }
+  var od=overdueList();
+  var todayIdx=[];
+  var start=(state.currentDay-1)*DAY_SIZE;
+  for(var i=start;i<start+DAY_SIZE && i<BANK.length;i++) todayIdx.push(i);
+  var order=od.concat(todayIdx);
+
+  var tp=todayProgress();
+  var pct=Math.round(tp.mastered/Math.max(1,tp.total)*100);
+  var h='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></svg>第 '+state.currentDay+' 关 · 点卡片翻一翻，认识就点「认识啦」</div>';
+  h+='<div class="task-line" style="margin-bottom:12px"><span class="txt">本关进度 '+tp.mastered+' / '+tp.total+' 字</span><div class="progress"><i style="width:'+pct+'%"></i></div></div>';
+  h+='<div class="card-grid">';
+  for(var j=0;j<order.length;j++){
+    var idx=order[j], item=BANK[idx], st=charSt(item.c);
+    var badge='';
+    if(isOverdueChar(idx)) badge='<span class="badge review">补课</span>';
+    else if(st===2) badge='<span class="badge done">已掌握</span>';
+    var bg=CARD_COLORS[idx%CARD_COLORS.length];
+    h+='<div class="zi-card" data-char="'+esc(item.c)+'">'+badge
+      +'<div class="zi-inner">'
+      +'<div class="zi-face zi-front kai" style="background:'+bg+'">'+esc(item.c)+'</div>'
+      +'<div class="zi-face zi-back">'
+      +'<div class="pic">'+(item.s||tianzige(item.c))+'</div>'
+      +'<div class="py">'+esc(item.p)+'</div>'
+      +'<div class="words">'+item.w.map(function(w){return '<i>'+esc(w)+'</i>';}).join('')+'</div>'
+      +'<div style="display:flex;gap:6px">'+speakerBtn(item.c+'，'+item.w.join('，'))+'<button class="minibtn coral act-known">认识啦</button></div>'
+      +'</div></div></div>';
+  }
+  h+='</div>';
+  panel.innerHTML=h;
+
+  var cards=panel.querySelectorAll('.zi-card');
+  for(var k=0;k<cards.length;k++){
+    (function(card){
+      card.addEventListener('click',function(){
+        var c=card.getAttribute('data-char');
+        var willFlip=!card.classList.contains('flip');
+        card.classList.toggle('flip');
+        if(willFlip){
+          var before=charSt(c);
+          markSeen(c);
+          if(before===0){ save(); toast('学了一个新字 +1分'); }
+          else save();
+          renderPointsChip(); renderToday();
+          speak(c);
+        }
+      });
+      var known=card.querySelector('.act-known');
+      known.addEventListener('click',function(ev){
+        ev.stopPropagation();
+        card.classList.remove('flip');
+        refreshAll();
+      });
+    })(cards[k]);
+  }
+}
+/* __MODULE_QUIZ__ */
+var quizState={char:null,options:[],answered:false};
+function pickQuizChar(){
+  if(state.currentDay>TOTAL_DAYS) return null;
+  var start=(state.currentDay-1)*DAY_SIZE, pool=[];
+  for(var i=start;i<start+DAY_SIZE && i<BANK.length;i++){
+    if(charSt(BANK[i].c)===1) pool.push(BANK[i]); // 已翻卡但未掌握
+  }
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function buildOptions(target){
+  var correct=target.w[Math.floor(Math.random()*target.w.length)];
+  var distract=[];
+  var guard=0;
+  while(distract.length<2 && guard<200){
+    guard++;
+    var item=BANK[Math.floor(Math.random()*BANK.length)];
+    if(item.c===target.c) continue;
+    var w=item.w[Math.floor(Math.random()*item.w.length)];
+    if(w.indexOf(target.c)!==-1) continue;
+    if(distract.indexOf(w)!==-1 || w===correct) continue;
+    distract.push(w);
+  }
+  var opts=[{w:correct,ok:true}];
+  for(var i=0;i<distract.length;i++) opts.push({w:distract[i],ok:false});
+  // 洗牌
+  for(var j=opts.length-1;j>0;j--){
+    var r=Math.floor(Math.random()*(j+1)),tmp=opts[j];opts[j]=opts[r];opts[r]=tmp;
+  }
+  return opts;
+}
+function renderQuiz(){
+  var panel=el('panel-quiz');
+  if(state.currentDay>TOTAL_DAYS){
+    panel.innerHTML='<div class="empty-box">全部字都学完啦，没有新的练习了，去闯关领奖吧！</div>';
+    return;
+  }
+  if(!quizState.char || charSt(quizState.char.c)===2){
+    var next=pickQuizChar();
+    if(!next){
+      var hasUnflipped=false, start=(state.currentDay-1)*DAY_SIZE;
+      for(var i=start;i<start+DAY_SIZE && i<BANK.length;i++){ if(charSt(BANK[i].c)===0){hasUnflipped=true;break;} }
+      if(hasUnflipped){
+        panel.innerHTML='<div class="empty-box">先去「学字卡片」把字卡翻一翻，<br>学过之后再来做组词练习哦<br><br><button class="bigbtn teal" id="quizGoCards">去学字卡片</button></div>';
+        el('quizGoCards').addEventListener('click',function(){ switchTab('cards'); });
+      }else{
+        panel.innerHTML='<div class="empty-box">本关的字全部掌握啦！去「闯关奖励」看看吧<br><br><button class="bigbtn grape" id="quizGoLevels">去闯关</button></div>';
+        el('quizGoLevels').addEventListener('click',function(){ switchTab('levels'); });
+      }
+      return;
+    }
+    quizState={char:next,options:buildOptions(next),answered:false};
+  }
+  var q=quizState;
+  var h='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#9B5DE5" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>组词练习 · 答对就掌握这个字，+2分</div>';
+  h+='<div class="quiz-wrap"><div class="quiz-q">'
+    +'<div class="quiz-char kai">'+esc(q.char.c)+'</div>'
+    +'<div class="quiz-tip">'+esc(q.char.p)+' · '+speakerBtn(q.char.c)+'</div>'
+    +'<div class="quiz-ask">哪个词语里有「'+esc(q.char.c)+'」字？</div>'
+    +'<div class="opt-list">';
+  for(var i=0;i<q.options.length;i++){
+    h+='<button class="opt-btn" data-ok="'+(q.options[i].ok?1:0)+'" data-w="'+esc(q.options[i].w)+'">'+esc(q.options[i].w)+'</button>';
+  }
+  h+='</div><div class="quiz-foot"><span>不会就点「听一听」让字宝宝说话</span><span>当前积分 '+state.points+'</span></div></div></div>';
+  panel.innerHTML=h;
+
+  var opts=panel.querySelectorAll('.opt-btn');
+  for(var k=0;k<opts.length;k++){
+    (function(btn){
+      btn.addEventListener('click',function(){
+        var w=btn.getAttribute('data-w');
+        speak(w);
+        if(btn.getAttribute('data-ok')==='1'){
+          if(quizState.answered) return;
+          quizState.answered=true;
+          btn.classList.add('right');
+          markMastered(quizState.char.c);
+          save();
+          toast('答对啦！「'+quizState.char.c+'」掌握了 +2分');
+          setTimeout(function(){ quizState.char=null; refreshAll(); },1200);
+        }else{
+          btn.classList.add('wrong');
+          setTimeout(function(){ btn.classList.remove('wrong'); },500);
+        }
+      });
+    })(opts[k]);
+  }
+}
+/* __MODULE_LEVELS__ */
+function renderLevels(){
+  var panel=el('panel-levels');
+  var mastered=totalMastered();
+  var h='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#E0A800" stroke-width="2" stroke-linecap="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 5H4a4 4 0 0 0 4 4M16 5h4a4 4 0 0 1-4 4M12 13v4M8 21h8"/></svg>识字闯关 · 共 '+TOTAL_DAYS+' 关（第 '+state.currentDay+' 关进行中）</div>';
+  h+='<div class="stat-row">'
+    +'<div class="stat-box"><div class="num" style="color:#B8860B">'+state.points+'</div><div class="lbl">我的积分</div></div>'
+    +'<div class="stat-box"><div class="num" style="color:#2E7D32">'+mastered+'</div><div class="lbl">已学会的字</div></div>'
+    +'<div class="stat-box"><div class="num" style="color:#D94F4F">'+state.streak+'</div><div class="lbl">连续学习(天)</div></div>'
+    +'</div>';
+
+  var from=Math.max(1,state.currentDay-1), to=Math.min(TOTAL_DAYS,state.currentDay+3);
+  h+='<div class="level-grid">';
+  for(var d=from;d<=to;d++){
+    var chars=dayChars(d), m=0;
+    for(var i=0;i<chars.length;i++) if(charSt(chars[i].c)===2) m++;
+    var locked=d>state.currentDay;
+    var cleared=m>=chars.length && chars.length>0;
+    var stars=cleared?3:(m>=Math.ceil(chars.length*0.9)?2:(m>=Math.ceil(chars.length/2)?1:0));
+    var tag=cleared?'<span class="level-tag go">已通关</span>':(locked?'<span class="level-tag lock">未解锁</span>':'<span class="level-tag ing">进行中 '+m+'/'+chars.length+'</span>');
+    var starHtml=''; for(var s=0;s<3;s++) starHtml+=starSvg(s<stars);
+    h+='<div class="level-card'+(locked?' locked':'')+'"><h4>第 '+d+' 关</h4>'
+      +'<div class="chars">'+esc(chars[0].c)+' · '+esc(chars[chars.length-1].c)+' 等 '+chars.length+' 字</div>'
+      +'<div class="stars">'+starHtml+'</div>'+tag+'</div>';
+  }
+  h+='</div>';
+
+  // 奖励商城
+  h+='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M4 13h16"/></svg>奖励商城 · 用积分换礼物</div>';
+  h+='<div class="shop-grid">';
+  for(var r=0;r<state.rewards.length;r++){
+    var rw=state.rewards[r];
+    var pending=false;
+    for(var p=0;p<state.redemptions.length;p++){
+      if(state.redemptions[p].rewardName===rw.name && state.redemptions[p].status==='pending'){ pending=true; break; }
+    }
+    h+='<div class="reward-card"><div class="rw-ico"><svg><use href="#i-gift"/></svg></div>'
+      +'<h4>'+esc(rw.name)+'</h4><div class="cost">'+rw.cost+' 积分</div>';
+    if(pending){
+      h+='<span class="pending-tag">等爸爸妈妈确认</span>';
+    }else if(state.points>=rw.cost){
+      h+='<button class="bigbtn" style="min-height:50px;width:100%" data-redeem="'+esc(rw.name)+'" data-cost="'+rw.cost+'">兑换</button>';
+    }else{
+      h+='<button class="bigbtn" style="min-height:50px;width:100%;opacity:.5" disabled>积分还差 '+(rw.cost-state.points)+'</button>';
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  panel.innerHTML=h;
+
+  var btns=panel.querySelectorAll('[data-redeem]');
+  for(var b=0;b<btns.length;b++){
+    (function(btn){
+      btn.addEventListener('click',function(){
+        var name=btn.getAttribute('data-redeem'), cost=parseInt(btn.getAttribute('data-cost'),10);
+        if(state.points<cost){ toast('积分不够哦，继续加油学字吧'); return; }
+        state.points-=cost;
+        state.redemptions.push({id:'rd_'+Date.now(),rewardName:name,cost:cost,status:'pending',ts:Date.now()});
+        save(); refreshAll();
+        toast('兑换申请已发出，等爸爸妈妈确认哦');
+      });
+    })(btns[b]);
+  }
+}
+/* __MODULE_PARENT__ */
+function obf(s){ try{ return btoa(unescape(encodeURIComponent('wb'+s+'sz'))); }catch(e){ return s; } }
+function showModal(html){
+  var root=el('modalRoot');
+  root.innerHTML='<div class="overlay" id="ovl"><div class="modal">'+html+'</div></div>';
+  el('ovl').addEventListener('click',function(ev){ if(ev.target===el('ovl')) closeModal(); });
+}
+function closeModal(){ el('modalRoot').innerHTML=''; }
+function askPassword(onOk){
+  var isSet=!!state.settings.pass;
+  showModal(
+    '<div class="lock-ico"><svg style="width:56px;height:56px"><use href="#i-lock"/></svg></div>'
+    +'<h3>'+(isSet?'请输入家长密码':'首次使用，请设置 4 位家长密码')+'</h3>'
+    +'<p>'+(isSet?'家长中心需要密码才能进入':'密码用于防止宝宝误改设置（仅防误触，非加密保护）')+'</p>'
+    +'<input class="pass-input" id="passInput" type="number" inputmode="numeric" max="9999" placeholder="····" autocomplete="off">'
+    +'<div class="row"><button class="bigbtn grape" id="passOk">确定</button><button class="bigbtn" style="background:#A9A3C0;box-shadow:0 4px 0 #8b85a0" id="passCancel">取消</button></div>'
+  );
+  var input=el('passInput'); input.focus();
+  el('passOk').addEventListener('click',function(){
+    var v=input.value.trim();
+    if(!/^\d{4}$/.test(v)){ toast('请输入 4 位数字密码'); return; }
+    if(!isSet){
+      state.settings.pass=obf(v); save(); closeModal(); toast('密码设置成功');
+      onOk();
+    }else if(obf(v)===state.settings.pass){
+      closeModal(); onOk();
+    }else{
+      toast('密码不对，再试一次'); input.value=''; input.focus();
+    }
+  });
+  el('passCancel').addEventListener('click',closeModal);
+}
+function renderParent(){
+  var panel=el('panel-parent');
+  if(!state.parentUnlocked){
+    panel.innerHTML='<div class="lock-box"><div class="lock-ico"><svg><use href="#i-lock"/></svg></div>'
+      +'<h3 style="margin:10px 0 4px">家长中心</h3>'
+      +'<p style="color:var(--soft);font-weight:700">学习报表、奖励管理、数据备份都在这里</p>'
+      +'<button class="bigbtn grape" id="btnUnlock" style="margin-top:14px;width:100%">输入密码进入</button></div>';
+    el('btnUnlock').addEventListener('click',function(){
+      askPassword(function(){ state.parentUnlocked=true; refreshAll(); });
+    });
+    return;
+  }
+
+  var mastered=totalMastered();
+  var h='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#9B5DE5" stroke-width="2" stroke-linecap="round"><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"/></svg>家长中心</div>';
+
+  // 学习报告
+  h+='<div class="report-grid">'
+    +'<div class="stat-box"><div class="num" style="color:#2E7D32">'+mastered+' / '+BANK.length+'</div><div class="lbl">累计学会</div></div>'
+    +'<div class="stat-box"><div class="num" style="color:#B8860B">'+state.points+'</div><div class="lbl">当前积分</div></div>'
+    +'<div class="stat-box"><div class="num" style="color:#D94F4F">'+state.streak+'</div><div class="lbl">连续学习(天)</div></div>'
+    +'<div class="stat-box"><div class="num" style="color:#2A6F97">第 '+Math.min(state.currentDay,TOTAL_DAYS)+' 关</div><div class="lbl">当前进度</div></div>'
+    +'</div>';
+
+  // 最近7天柱状图（内联 SVG）
+  var days=[],max=1;
+  for(var i=6;i>=0;i--){
+    var ds=dayOffsetStr(-i), n=state.log[ds]||0;
+    days.push({d:ds.slice(5),n:n}); if(n>max)max=n;
+  }
+  var bw=36,gap=18,chartW=days.length*(bw+gap)+gap,chartH=140;
+  var svgBars='';
+  for(var b=0;b<days.length;b++){
+    var bh=Math.max(4,Math.round(days[b].n/max*100));
+    var x=gap+b*(bw+gap), y=chartH-24-bh;
+    var fill=b===days.length-1?'#FF6B6B':'#4ECDC4';
+    svgBars+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="7" fill="'+fill+'"/>'
+      +'<text x="'+(x+bw/2)+'" y="'+(y-5)+'" text-anchor="middle" font-size="11" font-weight="bold" fill="#3D3654">'+days[b].n+'</text>'
+      +'<text x="'+(x+bw/2)+'" y="'+(chartH-8)+'" text-anchor="middle" font-size="10" fill="#8B85A3">'+days[b].d+'</text>';
+  }
+  h+='<div class="chart-box"><div style="font-weight:800;margin-bottom:8px">最近 7 天掌握字数</div>'
+    +'<svg viewBox="0 0 '+chartW+' '+chartH+'">'+svgBars+'</svg></div>';
+
+  // 待确认兑换
+  h+='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/></svg>待确认兑换</div>';
+  var pendings=[];
+  for(var p=0;p<state.redemptions.length;p++) if(state.redemptions[p].status==='pending') pendings.push(state.redemptions[p]);
+  if(!pendings.length){
+    h+='<div class="admin-list"><div class="admin-item"><span class="t" style="color:var(--soft)">暂无待确认的兑换申请</span></div></div>';
+  }else{
+    h+='<div class="admin-list">';
+    for(var q=0;q<pendings.length;q++){
+      h+='<div class="admin-item"><span class="t">'+esc(pendings[q].rewardName)+'（'+pendings[q].cost+' 积分）</span>'
+        +'<button class="smbtn" data-confirm="'+pendings[q].id+'">确认兑现</button>'
+        +'<button class="smbtn gray" data-refund="'+pendings[q].id+'">取消退分</button></div>';
+    }
+    h+='</div>';
+  }
+
+  // 奖励管理
+  h+='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M4 13h16"/></svg>奖励管理</div>';
+  h+='<div class="admin-list">';
+  for(var r=0;r<state.rewards.length;r++){
+    h+='<div class="admin-item"><span class="t">'+esc(state.rewards[r].name)+'（'+state.rewards[r].cost+' 积分）</span>'
+      +'<button class="smbtn red" data-delreward="'+state.rewards[r].id+'">删除</button></div>';
+  }
+  h+='</div>';
+  h+='<div class="form-row"><input id="rwName" placeholder="新奖励名称，如：去动物园" maxlength="12">'
+    +'<input id="rwCost" type="number" inputmode="numeric" placeholder="积分" min="1" max="999" style="max-width:100px">'
+    +'<button class="smbtn grape" id="btnAddReward" style="min-height:50px">添加</button></div>';
+
+  // 设置与数据
+  h+='<div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="#3D3654" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14 3h-4l-.6 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2L10 21h4l.6-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>设置与数据</div>';
+  h+='<div class="form-row"><span style="font-weight:800;align-self:center">每日学字目标</span>'
+    +'<select id="selDaily">'
+    +[10,15,20,25].map(function(n){ return '<option value="'+n+'"'+(todayTarget()===n?' selected':'')+'>'+n+' 个字</option>'; }).join('')
+    +'</select></div>';
+  h+='<div class="form-row"><span style="font-weight:800;align-self:center">跳到指定关卡</span>'
+    +'<input id="inpJump" type="number" inputmode="numeric" min="1" max="'+TOTAL_DAYS+'" placeholder="1~'+TOTAL_DAYS+'" style="max-width:120px">'
+    +'<button class="smbtn grape" id="btnJump" style="min-height:50px">跳转</button></div>';
+  h+='<div class="form-row">'
+    +'<button class="smbtn" id="btnExport2" style="min-height:50px;flex:1">导出 JSON 备份</button>'
+    +'<button class="smbtn grape" id="btnImport2" style="min-height:50px;flex:1">导入恢复</button>'
+    +'<button class="smbtn gray" id="btnResetPass" style="min-height:50px;flex:1">重设密码</button>'
+    +'</div>';
+  h+='<div class="danger-zone"><div style="font-weight:800;color:var(--red);margin-bottom:8px">数据管理（谨慎操作）</div>'
+    +'<div class="form-row" style="margin-top:0">'
+    +(state.sample?'<button class="smbtn gray" id="btnClearSample" style="min-height:50px;flex:1">清空示例数据</button>':'')
+    +'<button class="smbtn red" id="btnClearAll" style="min-height:50px;flex:1">清空全部数据</button>'
+    +'</div></div>';
+  h+='<div style="text-align:center;margin-top:14px"><button class="smbtn gray" id="btnLock">退出家长中心</button></div>';
+
+  panel.innerHTML=h;
+
+  // 事件绑定
+  var cbs=panel.querySelectorAll('[data-confirm]');
+  for(var c1=0;c1<cbs.length;c1++){
+    (function(btn){ btn.addEventListener('click',function(){
+      var id=btn.getAttribute('data-confirm');
+      for(var i=0;i<state.redemptions.length;i++){
+        if(state.redemptions[i].id===id){ state.redemptions[i].status='done'; break; }
+      }
+      save(); refreshAll(); toast('已确认兑现，宝宝真棒！');
+    }); })(cbs[c1]);
+  }
+  var rbs=panel.querySelectorAll('[data-refund]');
+  for(var c2=0;c2<rbs.length;c2++){
+    (function(btn){ btn.addEventListener('click',function(){
+      var id=btn.getAttribute('data-refund');
+      for(var i=0;i<state.redemptions.length;i++){
+        if(state.redemptions[i].id===id){
+          state.points+=state.redemptions[i].cost;
+          state.redemptions.splice(i,1); break;
+        }
+      }
+      save(); refreshAll(); toast('已取消并退回积分');
+    }); })(rbs[c2]);
+  }
+  var dbs=panel.querySelectorAll('[data-delreward]');
+  for(var c3=0;c3<dbs.length;c3++){
+    (function(btn){ btn.addEventListener('click',function(){
+      var id=btn.getAttribute('data-delreward');
+      for(var i=0;i<state.rewards.length;i++){
+        if(state.rewards[i].id===id){ state.rewards.splice(i,1); break; }
+      }
+      save(); refreshAll(); toast('奖励已删除');
+    }); })(dbs[c3]);
+  }
+  el('btnAddReward').addEventListener('click',function(){
+    var name=el('rwName').value.trim(), cost=parseInt(el('rwCost').value,10);
+    if(!name){ toast('请输入奖励名称'); return; }
+    if(!cost||cost<1){ toast('请输入需要的积分'); return; }
+    state.rewards.push({id:'rw_'+Date.now(),name:name,cost:cost});
+    save(); refreshAll(); toast('新奖励已上架');
+  });
+  el('selDaily').addEventListener('change',function(){
+    state.settings.daily=parseInt(this.value,10); save(); refreshAll(); toast('每日目标已更新');
+  });
+  el('btnJump').addEventListener('click',function(){
+    var n=parseInt(el('inpJump').value,10);
+    if(!n||n<1||n>TOTAL_DAYS){ toast('请输入 1~'+TOTAL_DAYS+' 之间的关号'); return; }
+    state.currentDay=n; save(); refreshAll(); toast('已跳到第 '+n+' 关');
+  });
+  el('btnExport2').addEventListener('click',exportJson);
+  el('btnImport2').addEventListener('click',function(){ el('importFile').click(); });
+  el('btnResetPass').addEventListener('click',function(){
+    state.settings.pass=null; save();
+    askPassword(function(){ toast('新密码已设置'); refreshAll(); });
+  });
+  var cs=el('btnClearSample');
+  if(cs) cs.addEventListener('click',function(){
+    showModal('<h3>清空示例数据？</h3><p>将重置学习进度，从第 1 关重新开始（保留奖励和密码）</p>'
+      +'<div class="row"><button class="bigbtn" id="cfYes">确认清空</button><button class="bigbtn teal" id="cfNo">再想想</button></div>');
+    el('cfYes').addEventListener('click',function(){
+      var keepPass=state.settings.pass, keepDaily=state.settings.daily, keepRewards=state.rewards;
+      state=freshState(); state.settings.pass=keepPass; state.settings.daily=keepDaily;
+      state.rewards=keepRewards; state.parentUnlocked=true;
+      save(); closeModal(); refreshAll(); toast('已清空示例数据');
+    });
+    el('cfNo').addEventListener('click',closeModal);
+  });
+  el('btnClearAll').addEventListener('click',function(){
+    showModal('<h3>确定清空全部数据？</h3><p>学习进度、积分、奖励、密码都会被删除，且无法恢复！建议先导出备份。</p>'
+      +'<div class="row"><button class="bigbtn" id="caYes">我已了解，确认清空</button><button class="bigbtn teal" id="caNo">取消</button></div>');
+    el('caYes').addEventListener('click',function(){
+      state=freshState(); save(); closeModal(); refreshAll(); toast('已全部清空，重新开始吧');
+    });
+    el('caNo').addEventListener('click',closeModal);
+  });
+  el('btnLock').addEventListener('click',function(){
+    state.parentUnlocked=false; switchTab('cards'); refreshAll();
+  });
+}
+
+function refreshAll(){
+  renderPointsChip();
+  renderToday();
+  renderCards();
+  renderQuiz();
+  renderLevels();
+  renderParent();
+}
+
+/* ================= 路由 ================= */
+function switchTab(tab){
+  var btns=document.querySelectorAll('nav button');
+  for(var i=0;i<btns.length;i++) btns[i].classList.toggle('on',btns[i].getAttribute('data-tab')===tab);
+  var panels=document.querySelectorAll('.panel');
+  for(var j=0;j<panels.length;j++) panels[j].classList.remove('active');
+  el('panel-'+tab).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* ================= 备份 ================= */
+function exportJson(){
+  var data=JSON.stringify(state,null,2);
+  var blob=new Blob([data],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='宝宝识字乐园_备份_'+todayStr()+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('备份文件已下载');
+}
+function importJson(file){
+  var reader=new FileReader();
+  reader.onload=function(){
+    try{
+      var data=JSON.parse(String(reader.result));
+      if(!data||typeof data!=='object'||!data.settings) throw new Error('bad');
+      state=data; save(); refreshAll(); toast('恢复成功！');
+    }catch(e){ toast('文件格式不对，恢复失败'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ================= 初始化 ================= */
+function init(){
+  var navBtns=document.querySelectorAll('nav button');
+  for(var i=0;i<navBtns.length;i++){
+    navBtns[i].addEventListener('click',function(){ switchTab(this.getAttribute('data-tab')); });
+  }
+  el('btnExport').addEventListener('click',exportJson);
+  el('btnImport').addEventListener('click',function(){ el('importFile').click(); });
+  el('importFile').addEventListener('change',function(){ if(this.files&&this.files[0]) importJson(this.files[0]); this.value=''; });
+  switchTab('cards');
+  refreshAll();
+}
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
+</body>
+</html>
