@@ -188,11 +188,11 @@ nav button.on svg{stroke:var(--coral)}
 .modal p{color:var(--soft);font-weight:700;margin-bottom:14px;font-size:.95rem}
 .modal .row{display:flex;gap:10px;justify-content:center}
 .toast{
-  position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99;background:var(--ink);color:#fff;
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99;pointer-events:none;background:var(--ink);color:#fff;
   border-radius:999px;padding:10px 22px;font-weight:800;font-size:.95rem;box-shadow:var(--shadow);
   animation:fadein .2s;max-width:88vw;text-align:center;
 }
-.confetti{position:fixed;top:-10px;z-index:98;width:10px;height:16px;border-radius:3px;animation:fall 2.2s linear forwards}
+.confetti{position:fixed;top:-10px;z-index:98;pointer-events:none;width:10px;height:16px;border-radius:3px;animation:fall 2.2s linear forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
 
 /* ===== 今日提示条 / 欢迎 / 奖杯庆祝 ===== */
@@ -237,8 +237,8 @@ nav button.on svg{stroke:var(--coral)}
 .eye-min{font-size:.78rem;font-weight:800;color:#1F7A72;background:#EAFBF9;border-radius:999px;padding:3px 10px;margin-left:auto}
 
 /* ===== 护眼休息锁屏 ===== */
-#restRoot{position:fixed;inset:0;z-index:200}
-.rest-mask{position:absolute;inset:0;background:linear-gradient(180deg,#EAFBF9 0%,#FFF7EC 100%);display:flex;align-items:center;justify-content:center;padding:22px;overflow-y:auto}
+#restRoot{position:fixed;inset:0;z-index:200;pointer-events:none} /* 空容器不拦截点击，锁屏内容出现时才接管 */
+#restRoot .rest-mask{position:absolute;inset:0;background:linear-gradient(180deg,#EAFBF9 0%,#FFF7EC 100%);display:flex;align-items:center;justify-content:center;padding:22px;overflow-y:auto;pointer-events:auto}
 .rest-box{background:#fff;border-radius:26px;box-shadow:0 12px 40px rgba(0,0,0,.18);padding:24px;max-width:420px;width:100%;text-align:center;border:3px solid #FFE8C2}
 .rest-box h3{font-size:1.25rem;margin:10px 0 8px}
 .rest-box p{color:var(--soft);font-weight:700;font-size:.95rem;line-height:1.6;margin-bottom:12px}
